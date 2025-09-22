@@ -1,318 +1,405 @@
 <!doctype html>
 <html lang="id">
+
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Kitab Kuning — Per Halaman (Klik kata)</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Kitab Kuning — Per Halaman (Klik kata)</title>
 
-<!-- Tailwind -->
-<script src="https://cdn.tailwindcss.com"></script>
-<!-- Vue 2 -->
-<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
-<!-- Font Arab (Amiri) -->
-<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 2 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <!-- Font Arab (Amiri) -->
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
 
-<style>
-html,body { height:100%; margin:0; padding:0; transition: background 0.3s, color 0.3s; }
-body.light { background: linear-gradient(180deg,#f4e2a3 0%, #f9f1d1 40%, #fdf9e6 100%); color:#2c2a24; }
-body.dark { background: #1f2937; color:#f3f4f6; }
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            transition: background 0.3s, color 0.3s;
+        }
 
-.book {
-  background: linear-gradient(180deg, #fff9e5 0%, #fff7d8 100%);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-  border-radius: 10px;
-  padding: 28px;
-  width: 96%;
-  max-width: 1200px;
-  min-height: 60vh;
-  border: 1px solid rgba(0,0,0,0.05);
-  position: relative;
-  transition: background 0.3s, color 0.3s;
-}
-body.dark .book { background: #374151; color: #f3f4f6; border-color: rgba(255,255,255,0.1); }
+        body.light {
+            background: linear-gradient(180deg, #f4e2a3 0%, #f9f1d1 40%, #fdf9e6 100%);
+            color: #2c2a24;
+        }
 
-@media (max-width: 768px) { .book { width: 100%; border-radius: 0; padding: 20px; } }
+        body.dark {
+            background: #1f2937;
+            color: #f3f4f6;
+        }
 
-.book-header {
-  font-family: 'Amiri', serif;
-  font-size: 1.1rem;
-  color: #5b4636;
-  text-align: center;
-  margin-bottom: 6px;
-  letter-spacing: .02em;
-}
-body.dark .book-header { color:#f3f4f6; }
+        .book {
+            background: linear-gradient(180deg, #fff9e5 0%, #fff7d8 100%);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+            border-radius: 10px;
+            padding: 28px;
+            width: 96%;
+            max-width: 1200px;
+            min-height: 60vh;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            position: relative;
+            transition: background 0.3s, color 0.3s;
+        }
 
-.page-paragraph {
-  direction: rtl;
-  text-align: right;
-  font-family: 'Amiri', serif;
-  line-height: 2.0;
-  padding: 12px;
-  margin-bottom: 12px;
-  word-break: keep-all;
-}
+        body.dark .book {
+            background: #374151;
+            color: #f3f4f6;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
 
-.arab-word {
-  display: inline-block;
-  margin-left: 0.6rem;
-  margin-right: 0.2rem;
-  padding: 0.08rem 0.28rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background .12s, transform .08s;
-  user-select: none;
-}
-.arab-word:hover { background: rgba(34,197,94,0.08); transform: translateY(-2px); }
+        @media (max-width: 768px) {
+            .book {
+                width: 100%;
+                border-radius: 0;
+                padding: 20px;
+            }
+        }
 
-.modal-backdrop { background: rgba(2,6,23,0.45); }
-.modal-card {
-  direction: ltr;
-  min-width: 320px;
-  max-width: 720px;
-  border-radius: 10px;
-  padding: 18px;
-  background: linear-gradient(180deg,#fffdfa,#fffef7);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-}
-body.dark .modal-card { background: #374151; color:#f3f4f6; }
+        .book-header {
+            font-family: 'Amiri', serif;
+            font-size: 1.1rem;
+            color: #5b4636;
+            text-align: center;
+            margin-bottom: 6px;
+            letter-spacing: .02em;
+        }
 
-.meaning { font-size: 1rem; color: #111827; }
-body.dark .meaning { color:#f3f4f6; }
-.kedudukan { font-size: 0.85rem; color: #4b5563; margin-top: .5rem; }
-body.dark .kedudukan { color:#d1d5db; }
+        body.dark .book-header {
+            color: #f3f4f6;
+        }
 
-.font-control {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  gap: 4px;
-}
-.font-control button { 
-  background: #facc15; 
-  color: #fff; 
-  font-weight: bold;
-  padding: 2px 8px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-}
+        .page-paragraph {
+            direction: rtl;
+            text-align: right;
+            font-family: 'Amiri', serif;
+            line-height: 2.0;
+            padding: 12px;
+            margin-bottom: 12px;
+            word-break: keep-all;
+        }
 
-.theme-toggle {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: #6366f1;
-  color: #fff;
-  font-weight: bold;
-  padding: 2px 8px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-}
-</style>
+        .arab-word {
+            display: inline-block;
+            margin-left: 0.6rem;
+            margin-right: 0.2rem;
+            padding: 0.08rem 0.28rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background .12s, transform .08s;
+            user-select: none;
+        }
+
+        .arab-word:hover {
+            background: rgba(34, 197, 94, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .modal-backdrop {
+            background: rgba(2, 6, 23, 0.45);
+        }
+
+        .modal-card {
+            direction: ltr;
+            min-width: 320px;
+            max-width: 720px;
+            border-radius: 10px;
+            padding: 18px;
+            background: linear-gradient(180deg, #fffdfa, #fffef7);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        body.dark .modal-card {
+            background: #374151;
+            color: #f3f4f6;
+        }
+
+        .meaning {
+            font-size: 1rem;
+            color: #111827;
+        }
+
+        body.dark .meaning {
+            color: #f3f4f6;
+        }
+
+        .kedudukan {
+            font-size: 0.85rem;
+            color: #4b5563;
+            margin-top: .5rem;
+        }
+
+        body.dark .kedudukan {
+            color: #d1d5db;
+        }
+
+        .font-control {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .font-control button {
+            background: #facc15;
+            color: #fff;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #6366f1;
+            color: #fff;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
 </head>
+
 <body>
 
-<div id="app" class="w-full flex flex-col items-center gap-6 py-10">
+    <div id="app" class="w-full flex flex-col items-center gap-6 py-10">
 
-  <!-- Toggle Theme -->
-  <button class="theme-toggle" @click="toggleTheme">
-    {{ theme === 'light' ? '🌙 Malam' : '☀️ Siang' }}
-  </button>
-
-  <!-- Font size controls -->
-  <div class="font-control">
-    <button @click="changeFontSize(2)">+</button>
-    <button @click="changeFontSize(-2)">-</button>
-  </div>
-
-  <div class="book">
-    <div class="flex flex-wrap items-center justify-between mb-2">
-      <div class="book-header">الكتاب — Al I'tiqod Imam Baihaqi</div>
-      <div class="flex items-center gap-3">
-       <div class="text-sm text-gray-600 dark:text-white mr-2">Masukkan nomor halaman:</div>
-
-<input 
-  v-model.number="noHalaman" 
-  type="number" 
-  min="1" 
-  placeholder="Contoh: 31"
-  @keyup.enter="insertThenFetch"
-  class="px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-yellow-300 text-black" 
-  style="width:110px">
-
-        <button @click="insertThenFetch" :disabled="loading || !noHalaman"
-                class="px-3 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600 ml-2">
-          Tampil
+        <!-- Toggle Theme -->
+        <button class="theme-toggle" @click="toggleTheme">
+            {{ theme === 'light' ? '🌙 Malam' : '☀️ Siang' }}
         </button>
+
+        <!-- Font size controls -->
+        <div class="font-control">
+            <button @click="changeFontSize(2)">+</button>
+            <button @click="changeFontSize(-2)">-</button>
+        </div>
+
+        <div class="book">
+            <div class="flex flex-wrap items-center justify-between mb-2">
+                <div class="book-header">الكتاب — Al I'tiqod Imam Baihaqi</div>
+                <div class="flex items-center gap-3">
+                    <div class="text-sm text-gray-600 dark:text-white mr-2">Masukkan nomor halaman:</div>
+
+                    <input v-model.number="noHalaman" type="number" min="1" placeholder="Contoh: 31"
+                        @keyup.enter="insertThenFetch"
+                        class="px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-yellow-300 text-black"
+                        style="width:110px">
+
+                    <button @click="insertThenFetch" :disabled="loading || !noHalaman"
+                        class="px-3 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600 ml-2">
+                        Tampil
+                    </button>
+                </div>
+            </div>
+
+            <div v-if="loading" class="p-6 text-center text-sm text-gray-600">Memproses… tunggu sebentar</div>
+
+            <div v-else>
+                <div v-if="pageRows.length === 0" class="p-8 text-center text-gray-600 italic">Tidak ada entri untuk
+                    halaman ini.</div>
+
+                <div v-if="pageRows.length" class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }"
+                    aria-live="polite">
+                    <template v-for="(item, idx) in pageRows">
+                        <template v-for="(part, j) in splitWords(item.arab)">
+                            <span class="arab-word" :key="idx + '-' + j" @click="openItemForWord(item, part)">
+                                {{ part }}
+                            </span>
+                        </template>
+                        <span style="display:inline-block; width:0.4rem;"></span>
+                    </template>
+                </div>
+
+                <!-- Tombol navigasi -->
+                <div class="mt-4 w-full flex justify-between">
+                    <button @click="prevPage" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600">←
+                        Prev Halaman</button>
+                    <button @click="nextPage"
+                        class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600">Next Halaman →</button>
+                </div>
+            </div>
+        </div>
+
+        
+<!-- Modal -->
+<transition name="fade">
+  <div v-if="active" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop"
+       @click.self="closeActive">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Detail kata">
+      <div class="flex items-start justify-between">
+        <div style="font-family:'Amiri', serif; font-size:1.6rem; text-align:right;" dir="rtl"
+             v-html="active.arab"></div>
+        <button @click="closeActive"
+                class="ml-4 text-gray-500 hover:text-gray-800"
+                aria-label="Tutup">✕</button>
       </div>
-    </div>
 
-    <div v-if="loading" class="p-6 text-center text-sm text-gray-600">Memproses… tunggu sebentar</div>
+      <div class="mt-3 text-sm text-gray-700">
+        <div class="mb-2 meaning"><strong>Arti</strong></div>
+        <div class="meaning">{{ active.arti }}</div><br>
+        <hr>
 
-    <div v-else>
-      <div v-if="pageRows.length === 0" class="p-8 text-center text-gray-600 italic">Tidak ada entri untuk halaman ini.</div>
-
-      <div v-if="pageRows.length" class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }" aria-live="polite">
-        <template v-for="(item, idx) in pageRows">
-          <template v-for="(part, j) in splitWords(item.arab)">
-            <span class="arab-word" :key="idx + '-' + j" @click="openItemForWord(item, part)">
-              {{ part }}
-            </span>
-          </template>
-          <span style="display:inline-block; width:0.4rem;"></span>
-        </template>
-      </div>
-
-      <!-- Tombol navigasi -->
-      <div class="mt-4 w-full flex justify-between">
-        <button @click="prevPage" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600">← Prev Halaman</button>
-        <button @click="nextPage" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600">Next Halaman →</button>
+        <div class="kedudukan" :class="darkMode ? 'text-green-400' : 'text-green-600'">
+          <strong>Kedudukan</strong>
+        </div>
+        <div class="kedudukan" :class="darkMode ? 'text-green-400' : 'text-green-600'">
+          {{ active.kedudukan }}
+        </div>
+        
+        <div class="mt-3 flex gap-2">
+          <button @click="addToMyDictionary(active)"
+                  class="px-3 py-1 rounded bg-green-500 text-white hover:bg-green-600">
+            Tambah ke Kamus Saya
+          </button>
+          <button @click="closeActive"
+                  class="px-3 py-1 rounded bg-gray-100 text-black hover:bg-gray-200">
+            Tutup
+          </button>
+        </div>
       </div>
     </div>
   </div>
-
-  <!-- Modal -->
-  <transition name="fade">
-    <div v-if="active" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop" @click.self="closeActive">
-      <div class="modal-card" role="dialog" aria-modal="true" aria-label="Detail kata">
-        <div class="flex items-start justify-between">
-          <div style="font-family:'Amiri', serif; font-size:1.6rem; text-align:right;" dir="rtl" v-html="active.arab"></div>
-          <button @click="closeActive" class="ml-4 text-gray-500 hover:text-gray-800 text-black" aria-label="Tutup">✕</button>
-        </div>
-
-        <div class="mt-3 text-sm text-gray-700">
-          <div class="mb-2 meaning"><strong>Arti</strong></div>
-          <div class="meaning">{{ active.arti }}</div><br>
-          <hr>
-
-<div class="kedudukan" :class="darkMode ? 'text-green-400' : 'text-green-600'">
-  <strong>Kedudukan</strong>
-</div>
-<div class="kedudukan" :class="darkMode ? 'text-green-400' : 'text-green-600'">
-  {{ active.kedudukan }}
-</div>
-
-
-          <!-- <div class="mt-3 text-xs text-gray-500">hal: {{ active.hal }} · row: {{ active.row }}</div>
-        </div> -->
-
-        <div class="mt-4 flex justify-end">
-          <button @click="closeActive" class="px-3 py-1 rounded bg-gray-100 text-black">Tutup</button>
-        </div>
-      </div>
+</transition>
     </div>
-  </transition>
-</div>
 
-<script>
-new Vue({
-  el:'#app',
-  data(){
-    return {
-      GAS_BASE:'https://script.google.com/macros/s/AKfycby025S9w4zqYOhMzReoyu2EOauP-7uVJZCFbCiC_lrclg9WXNapzwxGwo7LLW7sV15G6A/exec',
-      noHalaman: null,
-      loading:false,
-      raw:null,
-      rows:[],
-      pageRows:[],
-      active:null,
-      fontSizeArabic: 26,
-      theme:'light'
-    };
-  },
-  computed:{
-    readUrl(){ return this.GAS_BASE+'?action=read&table=query1'; },
-    insertUrlBase(){ return this.GAS_BASE+'?action=insert&table=request&data='; }
-  },
-  methods:{
-    async insertThenFetch(){
-      if(!this.noHalaman) return;
-      this.loading=true;
-      this.clearView(false);
-      localStorage.setItem('kitab_noHalaman', this.noHalaman);
-      localStorage.setItem('kitab_fontSize', this.fontSizeArabic);
-      try{ await this._doInsert(); }catch(e){ console.warn(e); }
-      await this._sleep(2000);
-      await this.loadPage();
-      this.loading=false;
-    },
-    async _doInsert(){
-      const now=this._now();
-      const payload={no:now.ts,tanggal:now.date,waktu:now.time,noHalaman:Number(this.noHalaman)};
-      const url=this.insertUrlBase+encodeURIComponent(JSON.stringify(payload));
-      const res=await fetch(url,{method:'GET'});
-      const text=await res.text();
-      try{ this.raw=JSON.parse(text); }catch(e){ this.raw=text; }
-      if(!res.ok) throw new Error('Insert gagal HTTP '+res.status);
-    },
-    async loadPage(){
-      try{
-        const res=await fetch(this.readUrl,{method:'GET'});
-        const text=await res.text();
-        let data=null;
-        try{ data=JSON.parse(text); }catch(e){ data=null; }
-        this.raw=data!==null?data:text;
-        let normalized=[];
-        if(data && typeof data==='object'){
-          if(Array.isArray(data.data)) normalized=data.data;
-          else if(Array.isArray(data.rows)) normalized=data.rows;
-          else if(Array.isArray(data.pending)||Array.isArray(data.uploaded)) normalized=(data.pending||[]).concat(data.uploaded||[]);
-          else if(Array.isArray(data)) normalized=data;
-          else if(data.no||data.arab) normalized=[data];
-          else normalized=[];
-        }else if(Array.isArray(data)) normalized=data;
-        else normalized=[];
-        normalized=normalized.map(r=>({
-          no:r.no??r.No??'',
-          arab:r.arab??r.A??'',
-          arti:r.arti??r.Arti??r.meaning??'',
-          kedudukan:r.kedudukan??r.Kedudukan??r.ked??'',
-          hal:Number(r.hal??r.h??r.page??0),
-          row:r.row??r.R??''
-        }));
-        normalized.sort((a,b)=>(Number(a.row)||0)-(Number(b.row)||0));
-        this.rows=normalized;
-        this.pageRows=this.rows.filter(r=>Number(r.hal)===Number(this.noHalaman));
-        localStorage.setItem('kitab_data_'+this.noHalaman, JSON.stringify(this.pageRows));
-      }catch(err){ console.error(err); this.rows=[]; this.pageRows=[]; }
-    },
-    splitWords(arabString){ return arabString?arabString.split(/\s+/).filter(Boolean):[]; },
-    openItemForWord(item,part){ this.active={arab:part,arti:item.arti||'(tidak ada)',kedudukan:item.kedudukan||'(tidak ada)',hal:item.hal||'',row:item.row||''}; },
-    closeActive(){ this.active=null; },
-    clearView(clearPage=true){ if(clearPage)this.noHalaman=null; this.rows=[]; this.pageRows=[]; this.raw=null; this.active=null; },
-    _now(){ const ts=Date.now(); const d=new Date(ts); const dateOptions={timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit'}; const parts=new Intl.DateTimeFormat('id-ID',dateOptions).format(d).split('/'); const tanggal=`${parts[2]}-${parts[1]}-${parts[0]}`; const timeOptions={timeZone:'Asia/Jakarta',hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'}; const waktu=new Intl.DateTimeFormat('en-GB',timeOptions).format(d); return {ts,date:tanggal,time:waktu}; },
-    _sleep(ms){ return new Promise(res=>setTimeout(res,ms)); },
-    nextPage(){ this.noHalaman++; this.insertThenFetch(); },
-    prevPage(){ if(this.noHalaman>1){ this.noHalaman--; this.insertThenFetch(); } },
-    changeFontSize(delta){ this.fontSizeArabic += delta; localStorage.setItem('kitab_fontSize', this.fontSizeArabic); },
-    toggleTheme(){
-      this.theme = this.theme === 'light' ? 'dark' : 'light';
-      localStorage.setItem('kitab_theme', this.theme);
-      document.body.className = this.theme;
-    }
-  },
-  mounted(){
-    // Theme
-    const savedTheme = localStorage.getItem('kitab_theme');
-    this.theme = savedTheme || 'light';
-    document.body.className = this.theme;
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    GAS_BASE: 'https://script.google.com/macros/s/AKfycby025S9w4zqYOhMzReoyu2EOauP-7uVJZCFbCiC_lrclg9WXNapzwxGwo7LLW7sV15G6A/exec',
+                    darkMode: false,   // <- ini wajib ada
+                    noHalaman: null,
+                    loading: false,
+                    raw: null,
+                    rows: [],
+                    pageRows: [],
+                    active: null,
+                    fontSizeArabic: 26,
+                    theme: 'light'
+                };
+            },
+            computed: {
+                readUrl() { return this.GAS_BASE + '?action=read&table=query1'; },
+                insertUrlBase() { return this.GAS_BASE + '?action=insert&table=request&data='; }
+            },
+            methods: {
+                  addToMyDictionary(item) {
+                        const saved = JSON.parse(localStorage.getItem('myDictionary') || '[]');
+                        // Cek agar tidak ada duplikat (misal berdasarkan Arab + halaman)
+                        const exists = saved.some(k => k.arab === item.arab && k.hal === item.hal);
+                        if (!exists) {
+                        saved.push({
+                            arab: item.arab,
+                            arti: item.arti,
+                            kedudukan: item.kedudukan,
+                            hal: item.hal,
+                            row: item.row
+                        });
+                        localStorage.setItem('myDictionary', JSON.stringify(saved));
+                        alert('Kata berhasil ditambahkan ke Kamus Saya!');
+                        } else {
+                        alert('Kata ini sudah ada di Kamus Saya.');
+                        }
+                    }
+                    ,
+                async insertThenFetch() {
+                    if (!this.noHalaman) return;
+                    this.loading = true;
+                    this.clearView(false);
+                    localStorage.setItem('kitab_noHalaman', this.noHalaman);
+                    localStorage.setItem('kitab_fontSize', this.fontSizeArabic);
+                    try { await this._doInsert(); } catch (e) { console.warn(e); }
+                    await this._sleep(2000);
+                    await this.loadPage();
+                    this.loading = false;
+                },
+                async _doInsert() {
+                    const now = this._now();
+                    const payload = { no: now.ts, tanggal: now.date, waktu: now.time, noHalaman: Number(this.noHalaman) };
+                    const url = this.insertUrlBase + encodeURIComponent(JSON.stringify(payload));
+                    const res = await fetch(url, { method: 'GET' });
+                    const text = await res.text();
+                    try { this.raw = JSON.parse(text); } catch (e) { this.raw = text; }
+                    if (!res.ok) throw new Error('Insert gagal HTTP ' + res.status);
+                },
+                async loadPage() {
+                    try {
+                        const res = await fetch(this.readUrl, { method: 'GET' });
+                        const text = await res.text();
+                        let data = null;
+                        try { data = JSON.parse(text); } catch (e) { data = null; }
+                        this.raw = data !== null ? data : text;
+                        let normalized = [];
+                        if (data && typeof data === 'object') {
+                            if (Array.isArray(data.data)) normalized = data.data;
+                            else if (Array.isArray(data.rows)) normalized = data.rows;
+                            else if (Array.isArray(data.pending) || Array.isArray(data.uploaded)) normalized = (data.pending || []).concat(data.uploaded || []);
+                            else if (Array.isArray(data)) normalized = data;
+                            else if (data.no || data.arab) normalized = [data];
+                            else normalized = [];
+                        } else if (Array.isArray(data)) normalized = data;
+                        else normalized = [];
+                        normalized = normalized.map(r => ({
+                            no: r.no ?? r.No ?? '',
+                            arab: r.arab ?? r.A ?? '',
+                            arti: r.arti ?? r.Arti ?? r.meaning ?? '',
+                            kedudukan: r.kedudukan ?? r.Kedudukan ?? r.ked ?? '',
+                            hal: Number(r.hal ?? r.h ?? r.page ?? 0),
+                            row: r.row ?? r.R ?? ''
+                        }));
+                        normalized.sort((a, b) => (Number(a.row) || 0) - (Number(b.row) || 0));
+                        this.rows = normalized;
+                        this.pageRows = this.rows.filter(r => Number(r.hal) === Number(this.noHalaman));
+                        localStorage.setItem('kitab_data_' + this.noHalaman, JSON.stringify(this.pageRows));
+                    } catch (err) { console.error(err); this.rows = []; this.pageRows = []; }
+                },
+                splitWords(arabString) { return arabString ? arabString.split(/\s+/).filter(Boolean) : []; },
+                openItemForWord(item, part) { this.active = { arab: part, arti: item.arti || '(tidak ada)', kedudukan: item.kedudukan || '(tidak ada)', hal: item.hal || '', row: item.row || '' }; },
+                closeActive() { this.active = null; },
+                clearView(clearPage = true) { if (clearPage) this.noHalaman = null; this.rows = []; this.pageRows = []; this.raw = null; this.active = null; },
+                _now() { const ts = Date.now(); const d = new Date(ts); const dateOptions = { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }; const parts = new Intl.DateTimeFormat('id-ID', dateOptions).format(d).split('/'); const tanggal = `${parts[2]}-${parts[1]}-${parts[0]}`; const timeOptions = { timeZone: 'Asia/Jakarta', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }; const waktu = new Intl.DateTimeFormat('en-GB', timeOptions).format(d); return { ts, date: tanggal, time: waktu }; },
+                _sleep(ms) { return new Promise(res => setTimeout(res, ms)); },
+                nextPage() { this.noHalaman++; this.insertThenFetch(); },
+                prevPage() { if (this.noHalaman > 1) { this.noHalaman--; this.insertThenFetch(); } },
+                changeFontSize(delta) { this.fontSizeArabic += delta; localStorage.setItem('kitab_fontSize', this.fontSizeArabic); },
+                toggleTheme() {
+                    this.theme = this.theme === 'light' ? 'dark' : 'light';
+                    localStorage.setItem('kitab_theme', this.theme);
+                    document.body.className = this.theme;
+                }
+            },
+            mounted() {
+                // Theme
+                const savedTheme = localStorage.getItem('kitab_theme');
+                this.theme = savedTheme || 'light';
+                document.body.className = this.theme;
 
-    // Font size
-    const savedFont = localStorage.getItem('kitab_fontSize');
-    if(savedFont) this.fontSizeArabic = Number(savedFont);
+                // Font size
+                const savedFont = localStorage.getItem('kitab_fontSize');
+                if (savedFont) this.fontSizeArabic = Number(savedFont);
 
-    // Last page
-    const savedPage=localStorage.getItem('kitab_noHalaman');
-    if(savedPage){ 
-      this.noHalaman=Number(savedPage); 
-      const savedData=localStorage.getItem('kitab_data_'+savedPage);
-      if(savedData){ this.pageRows=JSON.parse(savedData); }
-    }
-  }
-});
-</script>
+                // Last page
+                const savedPage = localStorage.getItem('kitab_noHalaman');
+                if (savedPage) {
+                    this.noHalaman = Number(savedPage);
+                    const savedData = localStorage.getItem('kitab_data_' + savedPage);
+                    if (savedData) { this.pageRows = JSON.parse(savedData); }
+                }
+            }
+        });
+    </script>
 </body>
+
 </html>
