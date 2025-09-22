@@ -433,16 +433,16 @@
         <div class="header-controls">
             <div class="header-left">
                 <button class="theme-toggle" @click="toggleTheme">
-                    {{ theme === 'light' ? '🌙 Malam' : '☀️ Siang' }}
+                    {{ theme === 'light' ? '🌙' : '☀️' }}
                 </button>
                 <button class="dictionary-toggle" @click="showDictionary = true">
-                    📚 Kamus Saya
+                    📚
                 </button>
             </div>
             
             <div class="header-center">
                 <div class="page-input">
-                    <div class="text-sm text-gray-600 dark:text-white">Halaman:</div>
+                    <div class="text-sm text-gray-600 dark:text-white">Hal</div>
                     <input v-model.number="noHalaman" type="number" min="1" placeholder="Contoh: 31"
                         @keyup.enter="insertThenFetch">
                     <button @click="insertThenFetch" :disabled="loading || !noHalaman">
