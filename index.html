@@ -44,7 +44,8 @@
             border: 1px solid rgba(0, 0, 0, 0.05);
             position: relative;
             transition: background 0.3s, color 0.3s;
-            margin-top: 120px; /* Memberi ruang untuk bubble */
+            margin-top: 120px;
+            /* Memberi ruang untuk bubble */
         }
 
         body.dark .book {
@@ -58,7 +59,8 @@
                 width: 100%;
                 border-radius: 0;
                 padding: 20px;
-                margin-top: 160px; /* Lebih banyak ruang untuk mobile */
+                margin-top: 160px;
+                /* Lebih banyak ruang untuk mobile */
             }
         }
 
@@ -162,7 +164,7 @@
             border: 1px solid #e5e7eb;
             font-family: 'Amiri', serif;
             z-index: 999;
-            
+
         }
 
         body.dark .bubble-dialog-fixed {
@@ -242,8 +244,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translate(-50%, -10px); }
-            to { opacity: 1; transform: translate(-50%, 0); }
+            from {
+                opacity: 0;
+                transform: translate(-50%, -10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
         }
 
         .theme-toggle {
@@ -293,6 +302,16 @@
             border-radius: 6px;
             cursor: pointer;
         }
+
+        .fade-enter-active,
+        .fade-leave-active {
+            transition: opacity 0.5s;
+        }
+
+        .fade-enter,
+        .fade-leave-to {
+            opacity: 0;
+        }
     </style>
 </head>
 
@@ -304,21 +323,22 @@
         <div class="header-controls">
             <div class="header-left">
                 <button class="theme-toggle" @click="toggleTheme">
-                    {{ theme === 'light' ? '🌙 Malam' : '☀️ Siang' }}
+                    {{ theme === 'light' ? '🌙 ' : '☀️ ' }}
                 </button>
             </div>
-            
+
             <div class="header-center">
                 <div class="page-input">
-                    <div class="text-sm text-gray-600 dark:text-white">Halaman:</div>
-                    <input v-model.number="noHalaman" type="number" min="1" placeholder="Contoh: 31"
+                    <div class="text-sm page-paragraph">HAL</div>
+                    <input v-model.number="noHalaman" type="number" min="1"
+                        class="text-sm text-gray-900 dark:text-gray-700" placeholder="Contoh: 31"
                         @keyup.enter="insertThenFetch">
                     <button @click="insertThenFetch" :disabled="loading || !noHalaman">
                         Tampil
                     </button>
                 </div>
             </div>
-            
+
             <div class="header-right">
                 <div class="font-control">
                     <button @click="changeFontSize(2)">+</button>
@@ -335,7 +355,8 @@
                 <div class="bubble-kedudukan">{{ activeBubble.item.kedudukan || '(tidak ada)' }}</div>
             </div>
             <div class="bubble-actions">
-                <button class="bubble-btn bubble-btn-primary" @click="addToMyDictionary(activeBubble.item, activeBubble.part)">
+                <button class="bubble-btn bubble-btn-primary"
+                    @click="addToMyDictionary(activeBubble.item, activeBubble.part)">
                     Simpan
                 </button>
                 <button class="bubble-btn bubble-btn-secondary" @click="closeBubble">
@@ -347,7 +368,10 @@
         <div class="book">
             <div class="book-header">الكتاب — Al I'tiqod Imam Baihaqi</div>
 
-            <div v-if="loading" class="p-6 text-center text-sm text-gray-600">Memproses… tunggu sebentar</div>
+            <div v-if="loading" style="font-size: 2rem;"
+                class="p-6 text-center text-sm text-gray-200 animate-pulse transition-opacity duration-500">
+                Memproses… tunggu sebentar
+            </div>
 
             <div v-else>
                 <div v-if="pageRows.length === 0" class="p-8 text-center text-gray-600 italic">Tidak ada entri untuk
@@ -357,9 +381,9 @@
                     aria-live="polite">
                     <template v-for="(item, idx) in pageRows">
                         <template v-for="(part, j) in splitWords(item.arab)">
-                            <span class="arab-word" :key="idx + '-' + j" 
-                                  :class="{ active: activeBubble && activeBubble.part === part && activeBubble.item === item }"
-                                  @click="openBubble(item, part, $event)">
+                            <span class="arab-word" :key="idx + '-' + j"
+                                :class="{ active: activeBubble && activeBubble.part === part && activeBubble.item === item }"
+                                @click="openBubble(item, part, $event)">
                                 {{ part }}
                             </span>
                         </template>
@@ -479,22 +503,22 @@
                 closeBubble() {
                     this.activeBubble = null;
                 },
-                clearView(clearPage = true) { 
-                    if (clearPage) this.noHalaman = null; 
-                    this.rows = []; 
-                    this.pageRows = []; 
-                    this.raw = null; 
+                clearView(clearPage = true) {
+                    if (clearPage) this.noHalaman = null;
+                    this.rows = [];
+                    this.pageRows = [];
+                    this.raw = null;
                     this.closeBubble();
                 },
-                _now() { 
-                    const ts = Date.now(); 
-                    const d = new Date(ts); 
-                    const dateOptions = { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }; 
-                    const parts = new Intl.DateTimeFormat('id-ID', dateOptions).format(d).split('/'); 
-                    const tanggal = `${parts[2]}-${parts[1]}-${parts[0]}`; 
-                    const timeOptions = { timeZone: 'Asia/Jakarta', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }; 
-                    const waktu = new Intl.DateTimeFormat('en-GB', timeOptions).format(d); 
-                    return { ts, date: tanggal, time: waktu }; 
+                _now() {
+                    const ts = Date.now();
+                    const d = new Date(ts);
+                    const dateOptions = { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' };
+                    const parts = new Intl.DateTimeFormat('id-ID', dateOptions).format(d).split('/');
+                    const tanggal = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    const timeOptions = { timeZone: 'Asia/Jakarta', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                    const waktu = new Intl.DateTimeFormat('en-GB', timeOptions).format(d);
+                    return { ts, date: tanggal, time: waktu };
                 },
                 _sleep(ms) { return new Promise(res => setTimeout(res, ms)); },
                 nextPage() { this.noHalaman++; this.insertThenFetch(); },
@@ -525,10 +549,10 @@
                     const savedData = localStorage.getItem('kitab_data_' + savedPage);
                     if (savedData) { this.pageRows = JSON.parse(savedData); }
                 }
-                
+
                 // Close bubble when clicking outside
                 document.addEventListener('click', (e) => {
-                    if (this.activeBubble && !e.target.closest('.bubble-dialog-fixed') && 
+                    if (this.activeBubble && !e.target.closest('.bubble-dialog-fixed') &&
                         !e.target.closest('.arab-word')) {
                         this.closeBubble();
                     }
