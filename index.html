@@ -122,6 +122,19 @@
             justify-content: space-between;
             align-items: center;
         }
+                .header-controls1 {
+            position: fixed;
+            top: 55px;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, #f4e2a3 0%, #f9f1d1 100%);
+            padding: 12px 20px;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
         body.dark .header-controls {
             background: #1f2937;
@@ -431,7 +444,8 @@
 
         <!-- Fixed Header Controls -->
         <div class="header-controls">
-            <div class="header-left">
+            
+       <div class="header-left">
                 <button class="theme-toggle" @click="toggleTheme">
                     {{ theme === 'light' ? '🌙' : '☀️' }}
                 </button>
@@ -457,7 +471,13 @@
                     <button @click="changeFontSize(-2)">-</button>
                 </div>
             </div>
-        </div>
+                     
+             </div>
+            <div class="header-controls1">
+                <label>
+                    <input type="checkbox" v-model="showArabic"> Tampilkan Arab
+                </label>
+            </div>
 
         <!-- Fixed Bubble Dialog -->
         <div v-if="activeBubble" class="bubble-dialog-fixed">
@@ -501,39 +521,43 @@
                     </div>
                 </div>
                 
-                <div v-if="myDictionary.length > 0" class="dictionary-actions">
+                <!-- <div v-if="myDictionary.length > 0" class="dictionary-actions">
                     <button class="bubble-btn bubble-btn-secondary" @click="clearDictionary">
                         Hapus Semua
                     </button>
                     <button class="bubble-btn bubble-btn-primary" @click="exportDictionary">
                         Ekspor Kamus
                     </button>
-                </div>
+                </div> -->
             </div>
         </div>
 
         <div class="book">
             <div class="book-header">الكتاب — Al I'tiqod Imam Baihaqi</div>
 
+
+
             <div v-if="loading" class="p-6 text-center text-sm text-gray-600">Memproses… tunggu sebentar</div>
 
             <div v-else>
                 <div v-if="pageRows.length === 0" class="p-8 text-center text-gray-600 italic">Tidak ada entri untuk
                     halaman ini.</div>
-
-                <div v-if="pageRows.length" class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }"
-                    aria-live="polite">
-                    <template v-for="(item, idx) in pageRows">
-                        <template v-for="(part, j) in splitWords(item.arab)">
-                            <span class="arab-word" :key="idx + '-' + j" 
-                                  :class="{ active: activeBubble && activeBubble.part === part && activeBubble.item === item }"
-                                  @click="openBubble(item, part, $event)">
-                                {{ part }}
-                            </span>
-                        </template>
-                        <span style="display:inline-block; width:0.4rem;"></span>
-                    </template>
-                </div>
+ 
+<div v-if="pageRows.length" class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }" aria-live="polite">
+    <div>
+ 
+</div>
+    <template v-for="(item, idx) in pageRows">
+        <template v-for="(part, j) in splitWords(showArabic ? item.arab : item.noHarokat)">
+            <span class="arab-word" :key="idx + '-' + j"
+                  :class="{ active: activeBubble && activeBubble.part === part && activeBubble.item === item }"
+                  @click="openBubble(item, part, $event)">
+                {{ part }}
+            </span>
+        </template>
+        <span style="display:inline-block; width:0.4rem;"></span>
+    </template>
+</div>
 
                 <!-- Tombol navigasi -->
                 <div class="mt-4 w-full flex justify-between">
@@ -553,6 +577,7 @@
                 return {
                     GAS_BASE: 'https://script.google.com/macros/s/AKfycby025S9w4zqYOhMzReoyu2EOauP-7uVJZCFbCiC_lrclg9WXNapzwxGwo7LLW7sV15G6A/exec',
                     darkMode: false,
+                     showArabic: true, // New data property
                     noHalaman: null,
                     loading: false,
                     raw: null,
@@ -634,37 +659,39 @@
                     try { this.raw = JSON.parse(text); } catch (e) { this.raw = text; }
                     if (!res.ok) throw new Error('Insert gagal HTTP ' + res.status);
                 },
-                async loadPage() {
-                    try {
-                        const res = await fetch(this.readUrl, { method: 'GET' });
-                        const text = await res.text();
-                        let data = null;
-                        try { data = JSON.parse(text); } catch (e) { data = null; }
-                        this.raw = data !== null ? data : text;
-                        let normalized = [];
-                        if (data && typeof data === 'object') {
-                            if (Array.isArray(data.data)) normalized = data.data;
-                            else if (Array.isArray(data.rows)) normalized = data.rows;
-                            else if (Array.isArray(data.pending) || Array.isArray(data.uploaded)) normalized = (data.pending || []).concat(data.uploaded || []);
-                            else if (Array.isArray(data)) normalized = data;
-                            else if (data.no || data.arab) normalized = [data];
-                            else normalized = [];
-                        } else if (Array.isArray(data)) normalized = data;
-                        else normalized = [];
-                        normalized = normalized.map(r => ({
-                            no: r.no ?? r.No ?? '',
-                            arab: r.arab ?? r.A ?? '',
-                            arti: r.arti ?? r.Arti ?? r.meaning ?? '',
-                            kedudukan: r.kedudukan ?? r.Kedudukan ?? r.ked ?? '',
-                            hal: Number(r.hal ?? r.h ?? r.page ?? 0),
-                            row: r.row ?? r.R ?? ''
-                        }));
-                        normalized.sort((a, b) => (Number(a.row) || 0) - (Number(b.row) || 0));
-                        this.rows = normalized;
-                        this.pageRows = this.rows.filter(r => Number(r.hal) === Number(this.noHalaman));
-                        localStorage.setItem('kitab_data_' + this.noHalaman, JSON.stringify(this.pageRows));
-                    } catch (err) { console.error(err); this.rows = []; this.pageRows = []; }
-                },
+async loadPage() {
+    try {
+        const res = await fetch(this.readUrl, { method: 'GET' });
+        const text = await res.text();
+        let data = null;
+        try { data = JSON.parse(text); } catch (e) { data = null; }
+        this.raw = data !== null ? data : text;
+        let normalized = [];
+        if (data && typeof data === 'object') {
+            if (Array.isArray(data.data)) normalized = data.data;
+            else if (Array.isArray(data.rows)) normalized = data.rows;
+            else if (Array.isArray(data.pending) || Array.isArray(data.uploaded)) normalized = (data.pending || []).concat(data.uploaded || []);
+            else if (Array.isArray(data)) normalized = data;
+            else if (data.no || data.arab) normalized = [data];
+            else normalized = [];
+        } else if (Array.isArray(data)) normalized = data;
+        else normalized = [];
+        normalized = normalized.map(r => ({
+            no: r.no ?? r.No ?? '',
+            arab: r.arab ?? r.A ?? '',
+            arti: r.arti ?? r.Arti ?? r.meaning ?? '',
+            kedudukan: r.kedudukan ?? r.Kedudukan ?? r.ked ?? '',
+            noHarokat: r.noHarokat ?? r.noH ?? '',
+            latin: r.latin ?? r.lat ?? '',
+            hal: Number(r.hal ?? r.h ?? r.page ?? 0),
+            row: r.row ?? r.R ?? ''
+        }));
+        normalized.sort((a, b) => (Number(a.row) || 0) - (Number(b.row) || 0));
+        this.rows = normalized;
+        this.pageRows = this.rows.filter(r => Number(r.hal) === Number(this.noHalaman));
+        localStorage.setItem('kitab_data_' + this.noHalaman, JSON.stringify(this.pageRows));
+    } catch (err) { console.error(err); this.rows = []; this.pageRows = []; }
+},
                 splitWords(arabString) { return arabString ? arabString.split(/\s+/).filter(Boolean) : []; },
                 openBubble(item, part, event) {
                     this.activeBubble = {
