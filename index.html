@@ -617,7 +617,8 @@ body.dark-mode .arab-word.has-meaning::after {
                 <div v-if="pageRows.length" class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }"
                     aria-live="polite">
                     <div>
-                        <!-- {{pageRows}} -->
+                        {{pageRows}}
+                        {{spokenWords}}
                     </div>
                     <template v-for="(item, idx) in pageRows">
                         <template v-for="(part, j) in splitWords(showArabic ? item.arab : item.noHarokat)">
@@ -720,55 +721,57 @@ body.dark-mode .arab-word.has-meaning::after {
     },
 
     // Metode generik untuk memulai pembacaan, baik dari awal atau dari kata tertentu
-    startReading(startItem = null, startWordIndex = null) {
-        this.stopReading();
-        this.isSpeaking = true;
-        this.isBubbleManuallyClosed = false;
+// Metode generik untuk memulai pembacaan
+startReading(startItem = null, startWordIndex = null) {
+    this.stopReading();
+    this.isSpeaking = true;
+    this.isBubbleManuallyClosed = false;
 
-        this.spokenWords = [];
-        let startIndex = 0;
-        
-        // Jika ada item awal, cari indeksnya
-        if (startItem) {
-            const startRowIndex = this.pageRows.findIndex(row => row === startItem);
-            // Tambahkan semua kata dari item tersebut dan setelahnya
-            for (let i = startRowIndex; i < this.pageRows.length; i++) {
-                const row = this.pageRows[i];
-                const originalWords = this.splitWords(this.showArabic ? row.arab : row.noHarokat);
-                originalWords.forEach((word, j) => {
-                    this.spokenWords.push({
-                        text: this.ttsMode === 'arab-arti' ? `${row.latin}. ${row.arti}` : this.ttsMode === 'arti' ? row.arti : row.latin,
-                        originalIndex: `${i}-${j}`
-                    });
-                });
-            }
-            // Temukan indeks awal kata yang dipilih
-            if (startWordIndex) {
-                startIndex = this.spokenWords.findIndex(word => word.originalIndex === startWordIndex);
-                if (startIndex === -1) startIndex = 0;
-            }
-        } else {
-            // Jika tidak ada item awal, tambahkan semua kata dari seluruh halaman
-            this.pageRows.forEach((row, i) => {
-                const originalWords = this.splitWords(this.showArabic ? row.arab : row.noHarokat);
-                originalWords.forEach((word, j) => {
-                    this.spokenWords.push({
-                        text: this.ttsMode === 'arab-arti' ? `${row.latin}. ${row.arti}` : this.ttsMode === 'arti' ? row.arti : row.latin,
-                        originalIndex: `${i}-${j}`
-                    });
+    this.spokenWords = [];
+    let startIndex = 0;
+    
+    // Jika ada item awal, cari indeksnya
+    if (startItem) {
+        const startRowIndex = this.pageRows.findIndex(row => row === startItem);
+        // Tambahkan semua kata dari item tersebut dan setelahnya
+        for (let i = startRowIndex; i < this.pageRows.length; i++) {
+            const row = this.pageRows[i];
+            const originalWords = this.splitWords(this.showArabic ? row.arab : row.noHarokat);
+            originalWords.forEach((word, j) => {
+                this.spokenWords.push({
+                    // Mengembalikan logika untuk membaca dari `latin`
+                    text: this.ttsMode === 'arab-arti' ? `${row.latin}. ${row.arti}` : this.ttsMode === 'arti' ? row.arti : row.latin,
+                    originalIndex: `${i}-${j}`
                 });
             });
         }
-        
-        if (this.spokenWords.length > 0) {
-            this.currentWordIndex = startIndex;
-            this.readNextWord();
-        } else {
-            this.stopReading();
-            alert('Tidak ada teks untuk dibaca.');
+        // Temukan indeks awal kata yang dipilih
+        if (startWordIndex) {
+            startIndex = this.spokenWords.findIndex(word => word.originalIndex === startWordIndex);
+            if (startIndex === -1) startIndex = 0;
         }
-    },
-
+    } else {
+        // Jika tidak ada item awal, tambahkan semua kata dari seluruh halaman
+        this.pageRows.forEach((row, i) => {
+            const originalWords = this.splitWords(this.showArabic ? row.arab : row.noHarokat);
+            originalWords.forEach((word, j) => {
+                this.spokenWords.push({
+                    // Mengembalikan logika untuk membaca dari `latin`
+                    text: this.ttsMode === 'arab-arti' ? `${row.latin}. ${row.arti}` : this.ttsMode === 'arti' ? row.arti : row.latin,
+                    originalIndex: `${i}-${j}`
+                });
+            });
+        });
+    }
+    
+    if (this.spokenWords.length > 0) {
+        this.currentWordIndex = startIndex;
+        this.readNextWord();
+    } else {
+        this.stopReading();
+        alert('Tidak ada teks untuk dibaca.');
+    }
+},
     // Logika utama pembacaan kata per kata
     async readNextWord() {
         if (!this.isSpeaking || this.currentWordIndex >= this.spokenWords.length) {
