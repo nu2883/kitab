@@ -617,8 +617,8 @@ body.dark-mode .arab-word.has-meaning::after {
                 <div v-if="pageRows.length" class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }"
                     aria-live="polite">
                     <div>
-                        {{pageRows}}
-                        {{spokenWords}}
+                        <!-- {{pageRows}}
+                        {{spokenWords}} -->
                     </div>
                     <template v-for="(item, idx) in pageRows">
                         <template v-for="(part, j) in splitWords(showArabic ? item.arab : item.noHarokat)">
