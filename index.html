@@ -460,8 +460,8 @@
     left: 50%;
     transform: translateX(-50%) rotate(45deg); /* Nilai sudut diubah menjadi 270 derajat */
     white-space: nowrap;
-    font-size: 0.5em;
-    color: #555;
+    font-size: 0.4em;
+    color: blue;
     
 }
     </style>
@@ -597,8 +597,8 @@
                         <!-- {{pageRows}} -->
                     </div>
 <template v-for="(item, idx) in pageRows">
-    <template v-for="(part, j) in splitWords(showArabic ? item.arab : item.noHarokat)">
-        <span class="arab-word" :key="idx + '-' + j"
+    <template v-for="(part, j) in splitWords(showArabic ? item.arab : item.noHarokat)" >
+        <span style="margin-bottom: 20px;" class="arab-word" :key="idx + '-' + j"
             :class="{ 
                 active: activeBubble && activeBubble.part === part && activeBubble.item === item,
                 'is-reading': isSpeaking && activeWordIndex === (idx + '-' + j),
