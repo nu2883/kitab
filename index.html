@@ -544,41 +544,30 @@
     </div>
 </div>
 
-        <!-- Kamus Saya Modal -->
-        <div v-if="showDictionary" class="dictionary-modal">
-            <div class="dictionary-content">
-                <div class="dictionary-header">
-                    <h2 class="dictionary-title">📚 Kamus Saya</h2>
-                    <button class="dictionary-close" @click="showDictionary = false">Tutup</button>
-                </div>
+<div v-if="showDictionary" class="dictionary-modal">
+    <div class="dictionary-content">
+        <div class="dictionary-header">
+            <h2 class="dictionary-title">📚 Kamus Saya</h2>
+            <button class="dictionary-close" @click="showDictionary = false">Tutup</button>
+        </div>
 
-                <div v-if="myDictionary.length === 0" class="dictionary-empty">
-                    Kamus Anda masih kosong. Klik kata Arab untuk menambahkannya ke kamus.
-                </div>
+        <div v-if="!myDictionary || myDictionary.length === 0" class="dictionary-empty">
+            Kamus Anda masih kosong. Klik kata Arab untuk menambahkannya ke kamus.
+        </div>
 
-                <div v-else class="dictionary-list">
-                    <div v-for="(word, index) in myDictionary" :key="index" class="dictionary-item">
-                        <div class="dictionary-arabic">{{ word.arab }}</div>
-                        <div class="dictionary-meaning"><strong>Arti:</strong> {{ word.arti }}</div>
-                        <div class="dictionary-kedudukan"><strong>Kedudukan:</strong> {{ word.kedudukan }}</div>
-                        <div class="dictionary-hal">Halaman: {{ word.hal }}</div>
-                        <button class="bubble-btn bubble-btn-secondary" @click="removeFromDictionary(index)"
-                            style="margin-top: 10px; font-size: 0.8rem;">
-                            Hapus
-                        </button>
-                    </div>
-                </div>
-
-                <!-- <div v-if="myDictionary.length > 0" class="dictionary-actions">
-                    <button class="bubble-btn bubble-btn-secondary" @click="clearDictionary">
-                        Hapus Semua
-                    </button>
-                    <button class="bubble-btn bubble-btn-primary" @click="exportDictionary">
-                        Ekspor Kamus
-                    </button>
-                </div> -->
+        <div v-else class="dictionary-list">
+            <div v-for="(word, index) in myDictionary" :key="index" class="dictionary-item">
+                <div class="dictionary-arabic">{{ word.arab || '(tidak ada)' }}</div>
+                <div class="dictionary-meaning"><strong>Arti:</strong> {{ word.arti || '(tidak ada)' }}</div>
+                <div class="dictionary-kedudukan"><strong>Kedudukan:</strong> {{ word.kedudukan || '(tidak ada)' }}</div>
+                <div class="dictionary-hal"><strong>Halaman:</strong> {{ word.hal || '(tidak ada)' }}</div>
+                <button class="bubble-btn bubble-btn-secondary" @click="removeFromDictionary(index)">
+                    Hapus
+                </button>
             </div>
         </div>
+    </div>
+</div>
 
         <div class="book">
             <div class="book-header">الكتاب — Al I'tiqod Imam Baihaqi</div>
