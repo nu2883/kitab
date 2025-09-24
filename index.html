@@ -617,8 +617,8 @@ body.dark-mode .arab-word.has-meaning::after {
                 <div v-if="pageRows.length" class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }"
                     aria-live="polite">
                     <div>
-                        <!-- {{pageRows}}
-                        {{spokenWords}} -->
+                        <!-- {{pageRows}} -->
+                        {{spokenWords}}
                     </div>
                     <template v-for="(item, idx) in pageRows">
                         <template v-for="(part, j) in splitWords(showArabic ? item.arab : item.noHarokat)">
@@ -647,475 +647,566 @@ body.dark-mode .arab-word.has-meaning::after {
     </div>
 
     <script>
-        new Vue({
-            el: '#app',
-            data() {
-                return {
-                    GAS_BASE: 'https://script.google.com/macros/s/AKfycby025S9w4zqYOhMzReoyu2EOauP-7uVJZCFbCiC_lrclg9WXNapzwxGwo7LLW7sV15G6A/exec',
-                    darkMode: false,
-                    showArabic: true,
-                    ttsMode: 'arab-arti',
-                    speaking: false,
-                    sentences: [],
-                    currentSentenceIndex: 0,
-                    currentUtterance: null,
-                    activeBubble: null,
-                    noHalaman: null,
-                    loading: false,
-                    raw: null,
-                    rows: [],
-                    pageRows: [],
-                    fontSizeArabic: 26,
-                    theme: 'light',
-                    showDictionary: false,
-                    myDictionary: [],
+new Vue({
+    el: '#app',
+    data() {
+        return {
+            GAS_BASE: 'https://script.google.com/macros/s/AKfycby025S9w4zqYOhMzReoyu2EOauP-7uVJZCFbCiC_lrclg9WXNapzwxGwo7LLW7sV15G6A/exec',
+            darkMode: false,
+            showArabic: true,
+            ttsMode: 'arab-arti',
+            speaking: false,
+            sentences: [],
+            currentSentenceIndex: 0,
+            currentUtterance: null,
+            activeBubble: null,
+            noHalaman: null,
+            loading: false,
+            raw: null,
+            rows: [],
+            pageRows: [],
+            fontSizeArabic: 26,
+            theme: 'light',
+            showDictionary: false,
+            myDictionary: [],
 
-                    isSpeaking: false,
-                    activeWordIndex: null,
-                    spokenWords: [],
-                    currentWordIndex: 0,
-                    isBubbleManuallyClosed: false,
-                    showMeaning: false,
-                };
-            },
-            computed: {
-                fullText() {
-                    if (!this.pageRows || this.pageRows.length === 0) {
-                        return '';
-                    }
+            isSpeaking: false,
+            activeWordIndex: null,
+            spokenWords: [],
+            currentWordIndex: 0,
+            isBubbleManuallyClosed: false,
+            showMeaning: false,
+        };
+    },
+    computed: {
+        fullText() {
+            if (!this.pageRows || this.pageRows.length === 0) {
+                return '';
+            }
 
-                    if (this.ttsMode === 'arab-arti') {
-                        return this.pageRows.map(row => `${row.latin}. ${row.arti}.`).join(' ');
-                    } else {
-                        return this.pageRows.map(row => `${row.latin}.`).join(' ');
-                    }
-                },
-                readUrl() { return this.GAS_BASE + '?action=read&table=query1'; },
-                insertUrlBase() { return this.GAS_BASE + '?action=insert&table=request&data='; }
-            },
+            if (this.ttsMode === 'arab-arti') {
+                return this.pageRows.map(row => `${row.latin}. ${row.arti}.`).join(' ');
+            } else {
+                return this.pageRows.map(row => `${row.latin}.`).join(' ');
+            }
+        },
+        readUrl() { return this.GAS_BASE + '?action=read&table=query1'; },
+        insertUrlBase() { return this.GAS_BASE + '?action=insert&table=request&data='; }
+    },
     methods: {
-    // Metode utama untuk memulai/menghentikan pembacaan
-    toggleReading() {
-        if (this.isSpeaking) {
-            this.stopReading();
-        } else {
-            // Jika ada kata yang dipilih, mulai dari kata itu. Jika tidak, mulai dari awal.
-            if (this.activeWordIndex) {
-                const [rowIndex, partIndex] = this.activeWordIndex.split('-');
-                const item = this.pageRows[rowIndex];
-                this.startReading(item, this.activeWordIndex);
-            } else {
-                this.startReading();
+        // Metode utama untuk memulai/menghentikan pembacaan
+        toggleReading() {
+            // Check if speech synthesis is supported
+            if (!('speechSynthesis' in window)) {
+                alert('Text-to-Speech tidak didukung di browser ini. Coba gunakan Chrome atau browser modern lainnya.');
+                return;
             }
-        }
-    },
-    
-    // Metode untuk menangani klik pada kata
-    handleWordClick(item, part, wordIndex, event) {
-        this.openBubble(item, part, event);
-        this.activeWordIndex = wordIndex;
-        // Hentikan pembacaan jika sedang berjalan
-        if (this.isSpeaking) {
-            this.stopReading();
-        }
-    },
 
-    // Metode generik untuk memulai pembacaan, baik dari awal atau dari kata tertentu
-// Metode generik untuk memulai pembacaan
-startReading(startItem = null, startWordIndex = null) {
-    this.stopReading();
-    this.isSpeaking = true;
-    this.isBubbleManuallyClosed = false;
-
-    this.spokenWords = [];
-    let startIndex = 0;
-    
-    // Jika ada item awal, cari indeksnya
-    if (startItem) {
-        const startRowIndex = this.pageRows.findIndex(row => row === startItem);
-        // Tambahkan semua kata dari item tersebut dan setelahnya
-        for (let i = startRowIndex; i < this.pageRows.length; i++) {
-            const row = this.pageRows[i];
-            const originalWords = this.splitWords(this.showArabic ? row.arab : row.noHarokat);
-            originalWords.forEach((word, j) => {
-                this.spokenWords.push({
-                    // Mengembalikan logika untuk membaca dari `latin`
-                    text: this.ttsMode === 'arab-arti' ? `${row.latin}. ${row.arti}` : this.ttsMode === 'arti' ? row.arti : row.latin,
-                    originalIndex: `${i}-${j}`
-                });
-            });
-        }
-        // Temukan indeks awal kata yang dipilih
-        if (startWordIndex) {
-            startIndex = this.spokenWords.findIndex(word => word.originalIndex === startWordIndex);
-            if (startIndex === -1) startIndex = 0;
-        }
-    } else {
-        // Jika tidak ada item awal, tambahkan semua kata dari seluruh halaman
-        this.pageRows.forEach((row, i) => {
-            const originalWords = this.splitWords(this.showArabic ? row.arab : row.noHarokat);
-            originalWords.forEach((word, j) => {
-                this.spokenWords.push({
-                    // Mengembalikan logika untuk membaca dari `latin`
-                    text: this.ttsMode === 'arab-arti' ? `${row.latin}. ${row.arti}` : this.ttsMode === 'arti' ? row.arti : row.latin,
-                    originalIndex: `${i}-${j}`
-                });
-            });
-        });
-    }
-    
-    if (this.spokenWords.length > 0) {
-        this.currentWordIndex = startIndex;
-        this.readNextWord();
-    } else {
-        this.stopReading();
-        alert('Tidak ada teks untuk dibaca.');
-    }
-},
-    // Logika utama pembacaan kata per kata
-    async readNextWord() {
-        if (!this.isSpeaking || this.currentWordIndex >= this.spokenWords.length) {
-            this.stopReading();
-            return;
-        }
-    
-        const wordData = this.spokenWords[this.currentWordIndex];
-        const textToSpeak = wordData.text;
-    
-        this.activeWordIndex = wordData.originalIndex;
-    
-        // Perbarui activeBubble hanya jika tidak ditutup secara manual
-        if (!this.isBubbleManuallyClosed) {
-            const [rowIndex, partIndex] = wordData.originalIndex.split('-');
-            const originalItem = this.pageRows[rowIndex];
-    
-            if (originalItem) {
-                this.activeBubble = {
-                    item: originalItem,
-                    part: this.splitWords(this.showArabic ? originalItem.arab : originalItem.noHarokat)[partIndex]
-                };
-            }
-        }
-    
-        // Logika Auto-Scroll
-        this.$nextTick(() => {
-            const activeWordElement = this.$el.querySelector(`[data-key="${this.activeWordIndex}"]`);
-            if (activeWordElement) {
-                const elementTop = activeWordElement.getBoundingClientRect().top;
-                const windowHeight = window.innerHeight;
-                const offset = elementTop - (windowHeight / 2.5);
-                window.scrollBy({
-                    top: offset,
-                    behavior: 'smooth'
-                });
-            }
-        });
-    
-        try {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(textToSpeak);
-            const loadedVoices = window.speechSynthesis.getVoices() || [];
-    
-            let chosen = loadedVoices.find(v => v.lang && v.lang.toLowerCase().startsWith('id'));
-            if (!chosen) chosen = loadedVoices.find(v => v.lang && v.lang.toLowerCase().includes('indonesia'));
-            if (!chosen && loadedVoices.length) chosen = loadedVoices[0];
-    
-            if (chosen) {
-                u.voice = chosen;
-                u.lang = chosen.lang;
+            if (this.isSpeaking) {
+                this.stopReading();
             } else {
-                u.lang = 'id-ID';
+                // Jika ada kata yang dipilih, mulai dari kata itu. Jika tidak, mulai dari awal.
+                if (this.activeWordIndex) {
+                    const [rowIndex, partIndex] = this.activeWordIndex.split('-');
+                    const item = this.pageRows[rowIndex];
+                    this.startReading(item, this.activeWordIndex);
+                } else {
+                    this.startReading();
+                }
             }
-    
-            u.rate = 1.0;
-            u.pitch = 1.0;
-    
-            u.onend = () => {
-                this.currentWordIndex++;
+        },
+        
+        // Metode untuk menangani klik pada kata
+        handleWordClick(item, part, wordIndex, event) {
+            this.openBubble(item, part, event);
+            this.activeWordIndex = wordIndex;
+            // Hentikan pembacaan jika sedang berjalan
+            if (this.isSpeaking) {
+                this.stopReading();
+            }
+        },
+
+        // Metode generik untuk memulai pembacaan
+        startReading(startItem = null, startWordIndex = null) {
+            this.stopReading();
+            this.isSpeaking = true;
+            this.isBubbleManuallyClosed = false;
+
+            this.spokenWords = [];
+            let startIndex = 0;
+            
+            // Jika ada item awal, cari indeksnya
+            if (startItem) {
+                const startRowIndex = this.pageRows.findIndex(row => row === startItem);
+                // Tambahkan semua kata dari item tersebut dan setelahnya
+                for (let i = startRowIndex; i < this.pageRows.length; i++) {
+                    const row = this.pageRows[i];
+                    const originalWords = this.splitWords(this.showArabic ? row.arab : row.noHarokat);
+                    originalWords.forEach((word, j) => {
+                        this.spokenWords.push({
+                            text: this.ttsMode === 'arab-arti' ? `${row.latin}. ${row.arti}` : 
+                                  this.ttsMode === 'arti' ? row.arti : 
+                                  this.cleanTextForTTS(row.latin),
+                            originalIndex: `${i}-${j}`
+                        });
+                    });
+                }
+                // Temukan indeks awal kata yang dipilih
+                if (startWordIndex) {
+                    startIndex = this.spokenWords.findIndex(word => word.originalIndex === startWordIndex);
+                    if (startIndex === -1) startIndex = 0;
+                }
+            } else {
+                // Jika tidak ada item awal, tambahkan semua kata dari seluruh halaman
+                this.pageRows.forEach((row, i) => {
+                    const originalWords = this.splitWords(this.showArabic ? row.arab : row.noHarokat);
+                    originalWords.forEach((word, j) => {
+                        this.spokenWords.push({
+                            text: this.ttsMode === 'arab-arti' ? `${row.latin}. ${row.arti}` : 
+                                  this.ttsMode === 'arti' ? row.arti : 
+                                  this.cleanTextForTTS(row.latin),
+                            originalIndex: `${i}-${j}`
+                        });
+                    });
+                });
+            }
+            
+            if (this.spokenWords.length > 0) {
+                this.currentWordIndex = startIndex;
                 this.readNextWord();
-            };
-    
-            u.onerror = (e) => {
+            } else {
+                this.stopReading();
+                alert('Tidak ada teks untuk dibaca.');
+            }
+        },
+
+        // Membersihkan teks untuk TTS (menghilangkan karakter khusus)
+        cleanTextForTTS(text) {
+            if (!text) return '';
+            return text
+                .replace(/[^\w\s.,!?;:]/gi, '') // Hapus karakter khusus kecuali tanda baca
+                .replace(/\s+/g, ' ') // Normalisasi spasi
+                .trim();
+        },
+
+        // Logika utama pembacaan kata per kata
+        async readNextWord() {
+            if (!this.isSpeaking || this.currentWordIndex >= this.spokenWords.length) {
+                this.stopReading();
+                return;
+            }
+
+            const wordData = this.spokenWords[this.currentWordIndex];
+            const textToSpeak = wordData.text;
+
+            this.activeWordIndex = wordData.originalIndex;
+
+            // Perbarui activeBubble hanya jika tidak ditutup secara manual
+            if (!this.isBubbleManuallyClosed) {
+                const [rowIndex, partIndex] = wordData.originalIndex.split('-');
+                const originalItem = this.pageRows[rowIndex];
+
+                if (originalItem) {
+                    this.activeBubble = {
+                        item: originalItem,
+                        part: this.splitWords(this.showArabic ? originalItem.arab : originalItem.noHarokat)[partIndex]
+                    };
+                }
+            }
+
+            // Logika Auto-Scroll
+            this.$nextTick(() => {
+                const activeWordElement = this.$el.querySelector(`[data-key="${this.activeWordIndex}"]`);
+                if (activeWordElement) {
+                    const elementTop = activeWordElement.getBoundingClientRect().top;
+                    const windowHeight = window.innerHeight;
+                    const offset = elementTop - (windowHeight / 2.5);
+                    window.scrollBy({
+                        top: offset,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+
+            try {
+                window.speechSynthesis.cancel();
+                
+                // Tunggu sampai voices siap (penting untuk mobile)
+                const voices = await this.loadVoices();
+                
+                const u = new SpeechSynthesisUtterance(textToSpeak);
+
+                // Pilih voice yang sesuai
+                let chosenVoice = this.findSuitableVoice(voices);
+                
+                if (chosenVoice) {
+                    u.voice = chosenVoice;
+                    u.lang = chosenVoice.lang;
+                } else {
+                    u.lang = 'id-ID'; // Fallback
+                }
+
+                u.rate = 0.9; // Lebih lambat untuk mobile
+                u.pitch = 1.0;
+                u.volume = 1.0;
+
+                u.onend = () => {
+                    this.currentWordIndex++;
+                    setTimeout(() => this.readNextWord(), 100); // Delay antar kata
+                };
+
+                u.onerror = (e) => {
+                    console.error('TTS error', e);
+                    // Pesan error yang user-friendly
+                    if (e.error === 'not-allowed') {
+                        alert('Akses Text-to-Speech diblokir. Izinkan akses microphone atau coba browser lain.');
+                    } else if (e.error === 'language-unavailable') {
+                        alert('Bahasa Indonesia tidak tersedia. Coba install Google TTS atau gunakan bahasa Inggris.');
+                    }
+                    this.stopReading();
+                };
+
+                // Delay kecil sebelum berbicara (membantu di mobile)
+                setTimeout(() => {
+                    try {
+                        window.speechSynthesis.speak(u);
+                    } catch (speakError) {
+                        console.error('Speak error:', speakError);
+                        this.stopReading();
+                    }
+                }, 50);
+
+            } catch (e) {
                 console.error('TTS error', e);
                 this.stopReading();
-            };
-    
-            window.speechSynthesis.speak(u);
-        } catch (e) {
-            console.error('TTS error', e);
-            this.stopReading();
-        }
-    },
+            }
+        },
 
-    // Metode untuk menghentikan pembacaan
-    stopReading() {
-        try {
-            window.speechSynthesis.cancel();
-        } catch (e) {}
-        this.isSpeaking = false;
-        this.activeWordIndex = null;
-        this.currentWordIndex = 0;
-        this.spokenWords = [];
-        this.isBubbleManuallyClosed = false;
-    },
-
-    // Metode pembantu untuk memecah teks menjadi kata-kata
-    splitWords(text) {
-        if (!text) return [];
-        return text.split(/\s+/).filter(Boolean);
-    },
-
-    // Metode untuk menutup gelembung
-    closeBubble() {
-        this.activeBubble = null;
-        this.isBubbleManuallyClosed = true;
-    },
-
-    // Metode untuk membuka gelembung
-    openBubble(item, part, event) {
-        this.activeBubble = {
-            item: item,
-            part: part
-        };
-        this.isBubbleManuallyClosed = false;
-    },
-
-    // Metode untuk menambahkan ke kamus
-    addToMyDictionary(item, part) {
-        const exists = this.myDictionary.some(k => k.arab === part && k.hal === item.hal);
-        if (!exists) {
-            this.myDictionary.push({
-                arab: part,
-                arti: item.arti,
-                kedudukan: item.kedudukan,
-                hal: item.hal,
-                row: item.row
+        // Method untuk memuat voices dengan benar
+        loadVoices() {
+            return new Promise((resolve) => {
+                const voices = window.speechSynthesis.getVoices();
+                if (voices.length > 0) {
+                    resolve(voices);
+                } else {
+                    // Tunggu sampai voices siap
+                    window.speechSynthesis.onvoiceschanged = () => {
+                        resolve(window.speechSynthesis.getVoices());
+                    };
+                    // Fallback timeout
+                    setTimeout(() => resolve(window.speechSynthesis.getVoices()), 1000);
+                }
             });
-            localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
-            alert('Kata "' + part + '" berhasil ditambahkan ke Kamus Saya!');
-        } else {
-            alert('Kata "' + part + '" sudah ada di Kamus Saya.');
-        }
-        this.closeBubble();
-    },
+        },
 
-    // Metode untuk menghapus dari kamus
-    removeFromDictionary(index) {
-        if (confirm('Hapus kata ini dari Kamus Saya?')) {
-            this.myDictionary.splice(index, 1);
-            localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
-        }
-    },
+        // Method untuk memilih voice yang sesuai
+        findSuitableVoice(voices) {
+            // Prioritas pemilihan voice
+            const voicePriority = [
+                { lang: 'id', name: 'id' }, // Indonesian
+                { lang: 'id', name: 'indonesia' }, // Indonesia
+                { lang: 'id', name: 'id-id' }, // id-ID
+                { lang: 'id', name: 'id_ID' }, // id_ID
+                { lang: 'en', name: 'en' }, // English fallback
+                { lang: 'en', name: 'english' }, // English
+                { lang: 'en', name: 'en-us' }, // English US
+                { lang: 'en', name: 'en-gb' }, // English UK
+                { lang: '', name: '' } // Voice apapun yang tersedia
+            ];
 
-    // Metode untuk membersihkan kamus
-    clearDictionary() {
-        if (confirm('Hapus semua kata dari Kamus Saya?')) {
-            this.myDictionary = [];
-            localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
-        }
-    },
+            for (const priority of voicePriority) {
+                const voice = voices.find(v => {
+                    if (!v.lang) return false;
+                    
+                    const langMatch = !priority.lang || 
+                                    v.lang.toLowerCase().includes(priority.lang) ||
+                                    v.lang.toLowerCase().startsWith(priority.lang);
+                    
+                    const nameMatch = !priority.name || 
+                                    (v.name && v.name.toLowerCase().includes(priority.name));
+                    
+                    return langMatch && nameMatch;
+                });
+                if (voice) return voice;
+            }
 
-    // Metode untuk mengunduh kamus
-    exportDictionary() {
-        const dataStr = JSON.stringify(this.myDictionary, null, 2);
-        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-        const exportFileDefaultName = 'kamus-saya.json';
-        const linkElement = document.createElement('a');
-        linkElement.setAttribute('href', dataUri);
-        linkElement.setAttribute('download', exportFileDefaultName);
-        linkElement.click();
-    },
+            return voices.length > 0 ? voices[0] : null;
+        },
 
-    // Metode untuk memuat kamus dari penyimpanan lokal
-    loadDictionary() {
-        const saved = localStorage.getItem('myDictionary');
-        this.myDictionary = saved ? JSON.parse(saved) : [];
-    },
+        // Metode untuk menghentikan pembacaan
+        stopReading() {
+            try {
+                window.speechSynthesis.cancel();
+            } catch (e) {
+                console.warn('Error stopping TTS:', e);
+            }
+            this.isSpeaking = false;
+            this.activeWordIndex = null;
+            this.currentWordIndex = 0;
+            this.spokenWords = [];
+            this.isBubbleManuallyClosed = false;
+        },
 
-    // Metode untuk memasukkan dan mengambil data
-    async insertThenFetch() {
-        if (!this.noHalaman) return;
-        this.loading = true;
-        this.clearView(false);
-        localStorage.setItem('kitab_noHalaman', this.noHalaman);
-        localStorage.setItem('kitab_fontSize', this.fontSizeArabic);
-        try {
-            await this._doInsert();
-        } catch (e) {
-            console.warn(e);
-        }
-        await this._sleep(2000);
-        await this.loadPage();
-        this.loading = false;
-    },
+        // Metode pembantu untuk memecah teks menjadi kata-kata
+        splitWords(text) {
+            if (!text) return [];
+            return text.split(/\s+/).filter(Boolean);
+        },
 
-    // Metode untuk melakukan permintaan sisipan
-    async _doInsert() {
-        const now = this._now();
-        const payload = {
-            no: now.ts,
-            tanggal: now.date,
-            waktu: now.time,
-            noHalaman: Number(this.noHalaman)
-        };
-        const url = this.insertUrlBase + encodeURIComponent(JSON.stringify(payload));
-        const res = await fetch(url, {
-            method: 'GET'
-        });
-        const text = await res.text();
-        try {
-            this.raw = JSON.parse(text);
-        } catch (e) {
-            this.raw = text;
-        }
-        if (!res.ok) throw new Error('Insert gagal HTTP ' + res.status);
-    },
+        // Metode untuk menutup gelembung
+        closeBubble() {
+            this.activeBubble = null;
+            this.isBubbleManuallyClosed = true;
+        },
 
-    // Metode untuk memuat data halaman
-    async loadPage() {
-        try {
-            const res = await fetch(this.readUrl, {
+        // Metode untuk membuka gelembung
+        openBubble(item, part, event) {
+            this.activeBubble = {
+                item: item,
+                part: part
+            };
+            this.isBubbleManuallyClosed = false;
+        },
+
+        // Metode untuk menambahkan ke kamus
+        addToMyDictionary(item, part) {
+            const exists = this.myDictionary.some(k => k.arab === part && k.hal === item.hal);
+            if (!exists) {
+                this.myDictionary.push({
+                    arab: part,
+                    arti: item.arti,
+                    kedudukan: item.kedudukan,
+                    hal: item.hal,
+                    row: item.row
+                });
+                localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
+                alert('Kata "' + part + '" berhasil ditambahkan ke Kamus Saya!');
+            } else {
+                alert('Kata "' + part + '" sudah ada di Kamus Saya.');
+            }
+            this.closeBubble();
+        },
+
+        // Metode untuk menghapus dari kamus
+        removeFromDictionary(index) {
+            if (confirm('Hapus kata ini dari Kamus Saya?')) {
+                this.myDictionary.splice(index, 1);
+                localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
+            }
+        },
+
+        // Metode untuk membersihkan kamus
+        clearDictionary() {
+            if (confirm('Hapus semua kata dari Kamus Saya?')) {
+                this.myDictionary = [];
+                localStorage.setItem('myDictionary', JSON.stringify(this.myDictionary));
+            }
+        },
+
+        // Metode untuk mengunduh kamus
+        exportDictionary() {
+            const dataStr = JSON.stringify(this.myDictionary, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+            const exportFileDefaultName = 'kamus-saya.json';
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        },
+
+        // Metode untuk memuat kamus dari penyimpanan lokal
+        loadDictionary() {
+            const saved = localStorage.getItem('myDictionary');
+            this.myDictionary = saved ? JSON.parse(saved) : [];
+        },
+
+        // Metode untuk memasukkan dan mengambil data
+        async insertThenFetch() {
+            if (!this.noHalaman) return;
+            this.loading = true;
+            this.clearView(false);
+            localStorage.setItem('kitab_noHalaman', this.noHalaman);
+            localStorage.setItem('kitab_fontSize', this.fontSizeArabic);
+            try {
+                await this._doInsert();
+            } catch (e) {
+                console.warn(e);
+            }
+            await this._sleep(2000);
+            await this.loadPage();
+            this.loading = false;
+        },
+
+        // Metode untuk melakukan permintaan sisipan
+        async _doInsert() {
+            const now = this._now();
+            const payload = {
+                no: now.ts,
+                tanggal: now.date,
+                waktu: now.time,
+                noHalaman: Number(this.noHalaman)
+            };
+            const url = this.insertUrlBase + encodeURIComponent(JSON.stringify(payload));
+            const res = await fetch(url, {
                 method: 'GET'
             });
             const text = await res.text();
-            let data = null;
             try {
-                data = JSON.parse(text);
+                this.raw = JSON.parse(text);
             } catch (e) {
-                data = null;
+                this.raw = text;
             }
-            this.raw = data !== null ? data : text;
-            let normalized = [];
-            if (data && typeof data === 'object') {
-                if (Array.isArray(data.data)) normalized = data.data;
-                else if (Array.isArray(data.rows)) normalized = data.rows;
-                else if (Array.isArray(data.pending) || Array.isArray(data.uploaded)) normalized = (data.pending || []).concat(data.uploaded || []);
-                else if (Array.isArray(data)) normalized = data;
-                else if (data.no || data.arab) normalized = [data];
+            if (!res.ok) throw new Error('Insert gagal HTTP ' + res.status);
+        },
+
+        // Metode untuk memuat data halaman
+        async loadPage() {
+            try {
+                const res = await fetch(this.readUrl, {
+                    method: 'GET'
+                });
+                const text = await res.text();
+                let data = null;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    data = null;
+                }
+                this.raw = data !== null ? data : text;
+                let normalized = [];
+                if (data && typeof data === 'object') {
+                    if (Array.isArray(data.data)) normalized = data.data;
+                    else if (Array.isArray(data.rows)) normalized = data.rows;
+                    else if (Array.isArray(data.pending) || Array.isArray(data.uploaded)) normalized = (data.pending || []).concat(data.uploaded || []);
+                    else if (Array.isArray(data)) normalized = data;
+                    else if (data.no || data.arab) normalized = [data];
+                    else normalized = [];
+                } else if (Array.isArray(data)) normalized = data;
                 else normalized = [];
-            } else if (Array.isArray(data)) normalized = data;
-            else normalized = [];
-            normalized = normalized.map(r => ({
-                no: r.no ?? r.No ?? '',
-                arab: r.arab ?? r.A ?? '',
-                arti: r.arti ?? r.Arti ?? r.meaning ?? '',
-                kedudukan: r.kedudukan ?? r.Kedudukan ?? r.ked ?? '',
-                noHarokat: r.noHarokat ?? r.noH ?? '',
-                latin: r.latin ?? r.lat ?? '',
-                hal: Number(r.hal ?? r.h ?? r.page ?? 0),
-                row: r.row ?? r.R ?? ''
-            }));
-            normalized.sort((a, b) => (Number(a.row) || 0) - (Number(b.row) || 0));
-            this.rows = normalized;
-            this.pageRows = this.rows.filter(r => Number(r.hal) === Number(this.noHalaman));
-            localStorage.setItem('kitab_data_' + this.noHalaman, JSON.stringify(this.pageRows));
-        } catch (err) {
-            console.error(err);
+                normalized = normalized.map(r => ({
+                    no: r.no ?? r.No ?? '',
+                    arab: r.arab ?? r.A ?? '',
+                    arti: r.arti ?? r.Arti ?? r.meaning ?? '',
+                    kedudukan: r.kedudukan ?? r.Kedudukan ?? r.ked ?? '',
+                    noHarokat: r.noHarokat ?? r.noH ?? '',
+                    latin: r.latin ?? r.lat ?? '',
+                    hal: Number(r.hal ?? r.h ?? r.page ?? 0),
+                    row: r.row ?? r.R ?? ''
+                }));
+                normalized.sort((a, b) => (Number(a.row) || 0) - (Number(b.row) || 0));
+                this.rows = normalized;
+                this.pageRows = this.rows.filter(r => Number(r.hal) === Number(this.noHalaman));
+                localStorage.setItem('kitab_data_' + this.noHalaman, JSON.stringify(this.pageRows));
+            } catch (err) {
+                console.error(err);
+                this.rows = [];
+                this.pageRows = [];
+            }
+        },
+
+        // Metode untuk membersihkan tampilan
+        clearView(clearPage = true) {
+            if (clearPage) this.noHalaman = null;
             this.rows = [];
             this.pageRows = [];
-        }
-    },
+            this.raw = null;
+            this.closeBubble();
+        },
 
-    // Metode untuk membersihkan tampilan
-    clearView(clearPage = true) {
-        if (clearPage) this.noHalaman = null;
-        this.rows = [];
-        this.pageRows = [];
-        this.raw = null;
-        this.closeBubble();
-    },
+        // Metode pembantu untuk mendapatkan waktu saat ini
+        _now() {
+            const ts = Date.now();
+            const d = new Date(ts);
+            const dateOptions = {
+                timeZone: 'Asia/Jakarta',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            };
+            const parts = new Intl.DateTimeFormat('id-ID', dateOptions).format(d).split('/');
+            const tanggal = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            const timeOptions = {
+                timeZone: 'Asia/Jakarta',
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            const waktu = new Intl.DateTimeFormat('en-GB', timeOptions).format(d);
+            return {
+                ts,
+                date: tanggal,
+                time: waktu
+            };
+        },
+        
+        // Metode pembantu untuk jeda
+        _sleep(ms) {
+            return new Promise(res => setTimeout(res, ms));
+        },
 
-    // Metode pembantu untuk mendapatkan waktu saat ini
-    _now() {
-        const ts = Date.now();
-        const d = new Date(ts);
-        const dateOptions = {
-            timeZone: 'Asia/Jakarta',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        };
-        const parts = new Intl.DateTimeFormat('id-ID', dateOptions).format(d).split('/');
-        const tanggal = `${parts[2]}-${parts[1]}-${parts[0]}`;
-        const timeOptions = {
-            timeZone: 'Asia/Jakarta',
-            hour12: false,
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        };
-        const waktu = new Intl.DateTimeFormat('en-GB', timeOptions).format(d);
-        return {
-            ts,
-            date: tanggal,
-            time: waktu
-        };
-    },
-    
-    // Metode pembantu untuk jeda
-    _sleep(ms) {
-        return new Promise(res => setTimeout(res, ms));
-    },
-
-    // Metode untuk halaman selanjutnya
-    nextPage() {
-        this.noHalaman++;
-        this.insertThenFetch();
-    },
-
-    // Metode untuk halaman sebelumnya
-    prevPage() {
-        if (this.noHalaman > 1) {
-            this.noHalaman--;
+        // Metode untuk halaman selanjutnya
+        nextPage() {
+            this.noHalaman++;
             this.insertThenFetch();
+        },
+
+        // Metode untuk halaman sebelumnya
+        prevPage() {
+            if (this.noHalaman > 1) {
+                this.noHalaman--;
+                this.insertThenFetch();
+            }
+        },
+
+        // Metode untuk mengubah ukuran font
+        changeFontSize(delta) {
+            this.fontSizeArabic += delta;
+            localStorage.setItem('kitab_fontSize', this.fontSizeArabic);
+        },
+
+        // Metode untuk mengubah tema
+        toggleTheme() {
+            this.theme = this.theme === 'light' ? 'dark' : 'light';
+            localStorage.setItem('kitab_theme', this.theme);
+            document.body.className = this.theme;
+            this.darkMode = this.theme === 'dark';
         }
     },
-
-    // Metode untuk mengubah ukuran font
-    changeFontSize(delta) {
-        this.fontSizeArabic += delta;
-        localStorage.setItem('kitab_fontSize', this.fontSizeArabic);
-    },
-
-    // Metode untuk mengubah tema
-    toggleTheme() {
-        this.theme = this.theme === 'light' ? 'dark' : 'light';
-        localStorage.setItem('kitab_theme', this.theme);
+    mounted() {
+        // Theme
+        const savedTheme = localStorage.getItem('kitab_theme');
+        this.theme = savedTheme || 'light';
         document.body.className = this.theme;
         this.darkMode = this.theme === 'dark';
-    }
-},
-            mounted() {
-                // Theme
-                const savedTheme = localStorage.getItem('kitab_theme');
-                this.theme = savedTheme || 'light';
-                document.body.className = this.theme;
-                this.darkMode = this.theme === 'dark';
 
-                // Font size
-                const savedFont = localStorage.getItem('kitab_fontSize');
-                if (savedFont) this.fontSizeArabic = Number(savedFont);
+        // Font size
+        const savedFont = localStorage.getItem('kitab_fontSize');
+        if (savedFont) this.fontSizeArabic = Number(savedFont);
 
-                // Last page
-                const savedPage = localStorage.getItem('kitab_noHalaman');
-                if (savedPage) {
-                    this.noHalaman = Number(savedPage);
-                    const savedData = localStorage.getItem('kitab_data_' + savedPage);
-                    if (savedData) { this.pageRows = JSON.parse(savedData); }
-                }
+        // Last page
+        const savedPage = localStorage.getItem('kitab_noHalaman');
+        if (savedPage) {
+            this.noHalaman = Number(savedPage);
+            const savedData = localStorage.getItem('kitab_data_' + savedPage);
+            if (savedData) { this.pageRows = JSON.parse(savedData); }
+        }
 
-                // Load dictionary
-                this.loadDictionary();
+        // Load dictionary
+        this.loadDictionary();
 
-                // Close bubble when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (this.activeBubble && !e.target.closest('.bubble-dialog-fixed') &&
-                        !e.target.closest('.arab-word')) {
-                        this.closeBubble();
-                    }
-                });
+        // Close bubble when clicking outside
+        document.addEventListener('click', (e) => {
+            if (this.activeBubble && !e.target.closest('.bubble-dialog-fixed') &&
+                !e.target.closest('.arab-word')) {
+                this.closeBubble();
             }
         });
+
+        // Preload voices saat aplikasi dimulai
+        this.loadVoices();
+    }
+});
     </script>
 </body>
 
