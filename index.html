@@ -513,8 +513,8 @@ body.dark-mode .arab-word.has-meaning::after {
         </div>
 
         <div class="flex items-center gap-1 text-gray-700 dark:text-gray-300">
-            <button @click="changeFontSize(2)" class="text-sm font-bold px-1 py-0.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200">+</button>
-            <button @click="changeFontSize(-2)" class="text-sm font-bold px-1 py-0.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200">-</button>
+             <button @click="changeFontSize(2)" class="text-sm font-bold px-2 py-1 rounded-md">A+</button>
+                <button @click="changeFontSize(-2)" class="text-sm font-bold px-2 py-1 rounded-md">A-</button>
         </div>
     </div>
 
@@ -617,6 +617,8 @@ body.dark-mode .arab-word.has-meaning::after {
                 <div v-if="pageRows.length" class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }"
                     aria-live="polite">
                     <div>
+
+                        <!-- {{raw}} -->
                         <!-- {{pageRows}} -->
                         <!-- {{spokenWords}} -->
                     </div>
@@ -726,161 +728,143 @@ new Vue({
             }
         },
 
-        // Metode generik untuk memulai pembacaan
-        startReading(startItem = null, startWordIndex = null) {
-            this.stopReading();
-            this.isSpeaking = true;
-            this.isBubbleManuallyClosed = false;
+// Metode generik untuk memulai pembacaan
+startReading(startItem = null, startWordIndex = null) {
+    this.stopReading();
+    this.isSpeaking = true;
+    this.isBubbleManuallyClosed = false;
 
-            this.spokenWords = [];
-            let startIndex = 0;
-            
-            // Jika ada item awal, cari indeksnya
-            if (startItem) {
-                const startRowIndex = this.pageRows.findIndex(row => row === startItem);
-                // Tambahkan semua kata dari item tersebut dan setelahnya
-                for (let i = startRowIndex; i < this.pageRows.length; i++) {
-                    const row = this.pageRows[i];
-                    const originalWords = this.splitWords(this.showArabic ? row.arab : row.noHarokat);
-                    originalWords.forEach((word, j) => {
-                        this.spokenWords.push({
-                            text: this.ttsMode === 'arab-arti' ? `${row.latin}. ${row.arti}` : 
-                                  this.ttsMode === 'arti' ? row.arti : 
-                                  this.cleanTextForTTS(row.latin),
-                            originalIndex: `${i}-${j}`
-                        });
-                    });
-                }
-                // Temukan indeks awal kata yang dipilih
-                if (startWordIndex) {
-                    startIndex = this.spokenWords.findIndex(word => word.originalIndex === startWordIndex);
-                    if (startIndex === -1) startIndex = 0;
-                }
-            } else {
-                // Jika tidak ada item awal, tambahkan semua kata dari seluruh halaman
-                this.pageRows.forEach((row, i) => {
-                    const originalWords = this.splitWords(this.showArabic ? row.arab : row.noHarokat);
-                    originalWords.forEach((word, j) => {
-                        this.spokenWords.push({
-                            text: this.ttsMode === 'arab-arti' ? `${row.latin}. ${row.arti}` : 
-                                  this.ttsMode === 'arti' ? row.arti : 
-                                  this.cleanTextForTTS(row.latin),
-                            originalIndex: `${i}-${j}`
-                        });
-                    });
-                });
-            }
-            
-            if (this.spokenWords.length > 0) {
-                this.currentWordIndex = startIndex;
-                this.readNextWord();
-            } else {
-                this.stopReading();
-                alert('Tidak ada teks untuk dibaca.');
-            }
-        },
-
-        // Membersihkan teks untuk TTS (menghilangkan karakter khusus)
-        cleanTextForTTS(text) {
-            if (!text) return '';
-            return text
-                .replace(/[^\w\s.,!?;:]/gi, '') // Hapus karakter khusus kecuali tanda baca
-                .replace(/\s+/g, ' ') // Normalisasi spasi
-                .trim();
-        },
-
-        // Logika utama pembacaan kata per kata
-        async readNextWord() {
-            if (!this.isSpeaking || this.currentWordIndex >= this.spokenWords.length) {
-                this.stopReading();
-                return;
-            }
-
-            const wordData = this.spokenWords[this.currentWordIndex];
-            const textToSpeak = wordData.text;
-
-            this.activeWordIndex = wordData.originalIndex;
-
-            // Perbarui activeBubble hanya jika tidak ditutup secara manual
-            if (!this.isBubbleManuallyClosed) {
-                const [rowIndex, partIndex] = wordData.originalIndex.split('-');
-                const originalItem = this.pageRows[rowIndex];
-
-                if (originalItem) {
-                    this.activeBubble = {
-                        item: originalItem,
-                        part: this.splitWords(this.showArabic ? originalItem.arab : originalItem.noHarokat)[partIndex]
-                    };
-                }
-            }
-
-            // Logika Auto-Scroll
-            this.$nextTick(() => {
-                const activeWordElement = this.$el.querySelector(`[data-key="${this.activeWordIndex}"]`);
-                if (activeWordElement) {
-                    const elementTop = activeWordElement.getBoundingClientRect().top;
-                    const windowHeight = window.innerHeight;
-                    const offset = elementTop - (windowHeight / 2.5);
-                    window.scrollBy({
-                        top: offset,
-                        behavior: 'smooth'
-                    });
-                }
+    this.spokenWords = [];
+    let startIndex = 0;
+    
+    // Siapkan spokenWords untuk seluruh halaman
+    this.pageRows.forEach((row, i) => {
+        const originalWords = this.splitWords(this.showArabic ? row.arab : row.noHarokat);
+        originalWords.forEach((word, j) => {
+            this.spokenWords.push({
+                originalIndex: `${i}-${j}`,
+                item: row, // Menyimpan referensi baris
+                part: word, // Menyimpan referensi kata
             });
+        });
+    });
 
+    // Cari indeks awal berdasarkan startItem atau startWordIndex
+    if (startItem) {
+        const startRowIndex = this.pageRows.findIndex(row => row === startItem);
+        if (startWordIndex) {
+            startIndex = this.spokenWords.findIndex(w => w.originalIndex === startWordIndex);
+        } else {
+            startIndex = this.spokenWords.findIndex(w => w.originalIndex.startsWith(`${startRowIndex}-`));
+        }
+        if (startIndex === -1) startIndex = 0;
+    }
+
+    if (this.spokenWords.length > 0) {
+        this.currentWordIndex = startIndex;
+        this.readNextWord();
+    } else {
+        this.stopReading();
+        alert('Tidak ada teks untuk dibaca.');
+    }
+},
+
+// Logika utama pembacaan kata per kata
+async readNextWord() {
+    if (!this.isSpeaking || this.currentWordIndex >= this.spokenWords.length) {
+        this.stopReading();
+        return;
+    }
+
+    const wordData = this.spokenWords[this.currentWordIndex];
+
+    // Tentukan teks untuk TTS di sini berdasarkan ttsMode
+    let textToSpeak = '';
+    const row = wordData.item;
+    if (this.ttsMode === 'arab-arti') {
+        textToSpeak = `${row.latin}. ${row.arti}`;
+    } else if (this.ttsMode === 'arti') {
+        textToSpeak = row.arti;
+    } else {
+        // Mode default (membaca per kata)
+        textToSpeak = this.cleanTextForTTS(wordData.part);
+    }
+
+    this.activeWordIndex = wordData.originalIndex;
+
+    // Perbarui activeBubble
+    if (!this.isBubbleManuallyClosed) {
+        this.activeBubble = {
+            item: wordData.item,
+            part: wordData.part
+        };
+    }
+
+    // Logika Auto-Scroll
+    this.$nextTick(() => {
+        const activeWordElement = this.$el.querySelector(`[data-key="${this.activeWordIndex}"]`);
+        if (activeWordElement) {
+            const elementTop = activeWordElement.getBoundingClientRect().top;
+            const windowHeight = window.innerHeight;
+            const offset = elementTop - (windowHeight / 2.5);
+            window.scrollBy({
+                top: offset,
+                behavior: 'smooth'
+            });
+        }
+    });
+
+    try {
+        window.speechSynthesis.cancel();
+        const voices = await this.loadVoices();
+        const u = new SpeechSynthesisUtterance(textToSpeak);
+
+        let chosenVoice = this.findSuitableVoice(voices);
+        if (chosenVoice) {
+            u.voice = chosenVoice;
+            u.lang = chosenVoice.lang;
+        } else {
+            u.lang = 'id-ID';
+        }
+        u.rate = 0.9;
+        u.pitch = 1.0;
+        u.volume = 1.0;
+
+u.onend = () => {
+    // Jika mode adalah 'arab-arti' atau 'arti', lewati semua kata di baris yang sama.
+    if (this.ttsMode === 'arab-arti' || this.ttsMode === 'arti') {
+        const [currentRowIndex, currentPartIndex] = wordData.originalIndex.split('-');
+        // Cari indeks kata terakhir dari baris saat ini
+        const lastWordInRowIndex = this.spokenWords.findIndex((w, i) =>
+            i > this.currentWordIndex && !w.originalIndex.startsWith(`${currentRowIndex}-`)
+        );
+        // Lompat ke indeks tersebut (atau ke akhir array jika tidak ada baris berikutnya)
+        this.currentWordIndex = lastWordInRowIndex !== -1 ? lastWordInRowIndex : this.spokenWords.length;
+    } else {
+        // Jika mode 'latin', pindah ke kata berikutnya
+        this.currentWordIndex++;
+    }
+    // Lanjutkan pembacaan
+    setTimeout(() => this.readNextWord(), 100);
+};
+        u.onerror = (e) => {
+            console.error('TTS error', e);
+            this.stopReading();
+        };
+
+        setTimeout(() => {
             try {
-                window.speechSynthesis.cancel();
-                
-                // Tunggu sampai voices siap (penting untuk mobile)
-                const voices = await this.loadVoices();
-                
-                const u = new SpeechSynthesisUtterance(textToSpeak);
-
-                // Pilih voice yang sesuai
-                let chosenVoice = this.findSuitableVoice(voices);
-                
-                if (chosenVoice) {
-                    u.voice = chosenVoice;
-                    u.lang = chosenVoice.lang;
-                } else {
-                    u.lang = 'id-ID'; // Fallback
-                }
-
-                u.rate = 0.9; // Lebih lambat untuk mobile
-                u.pitch = 1.0;
-                u.volume = 1.0;
-
-                u.onend = () => {
-                    this.currentWordIndex++;
-                    setTimeout(() => this.readNextWord(), 100); // Delay antar kata
-                };
-
-                u.onerror = (e) => {
-                    console.error('TTS error', e);
-                    // Pesan error yang user-friendly
-                    if (e.error === 'not-allowed') {
-                        alert('Akses Text-to-Speech diblokir. Izinkan akses microphone atau coba browser lain.');
-                    } else if (e.error === 'language-unavailable') {
-                        alert('Bahasa Indonesia tidak tersedia. Coba install Google TTS atau gunakan bahasa Inggris.');
-                    }
-                    this.stopReading();
-                };
-
-                // Delay kecil sebelum berbicara (membantu di mobile)
-                setTimeout(() => {
-                    try {
-                        window.speechSynthesis.speak(u);
-                    } catch (speakError) {
-                        console.error('Speak error:', speakError);
-                        this.stopReading();
-                    }
-                }, 50);
-
-            } catch (e) {
-                console.error('TTS error', e);
+                window.speechSynthesis.speak(u);
+            } catch (speakError) {
+                console.error('Speak error:', speakError);
                 this.stopReading();
             }
-        },
+        }, 50);
+    } catch (e) {
+        console.error('TTS error', e);
+        this.stopReading();
+    }
+},
 
         // Method untuk memuat voices dengan benar
         loadVoices() {
