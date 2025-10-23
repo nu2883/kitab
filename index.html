@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Kitab Al I'tiqod Imam Baihaqi</title>
+    <title>Kitab</title>
 
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -690,7 +690,7 @@
         <div class="book">
             <div class="book-header flex justify-between items-center px-4 py-2 border-b dark:border-gray-700">
                 <div class="text-lg font-semibold dark:text-white">
-                    Kitab Al I'tiqod Imam Baihaqi
+                    Kitab
                 </div>
                 
                 <div>
@@ -1054,6 +1054,16 @@
                     }
                     if (!res.ok) throw new Error('Insert gagal HTTP ' + res.status);
                 },
+clearOtherPageCache(currentKeyPrefix = 'kitab_data_') {
+    // Hapus semua cache yang dimulai dengan 'kitab_data_' kecuali halaman saat ini
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(currentKeyPrefix)) {
+            localStorage.removeItem(key);
+            i--; // penting! karena length localStorage berubah setelah remove
+        }
+    }
+},
 
                 // Memuat data halaman (Memprioritaskan Local Storage)
                 async loadPage() {
@@ -1133,8 +1143,11 @@
                             console.log(`Halaman ${targetPage} berhasil dimuat dari API. Jumlah baris: ${this.dataAwal.length}`);
                         }
 
-                        // 4. Simpan data baru ke Local Storage
-                        localStorage.setItem(storageKey, JSON.stringify(this.dataAwal));
+                        // 4️⃣ Bersihkan semua cache halaman lama sebelum menyimpan yang baru
+this.clearOtherPageCache();
+
+// Simpan data baru ke Local Storage
+localStorage.setItem(storageKey, JSON.stringify(this.dataAwal));
 
                     } catch (err) {
                         console.error('Gagal memuat halaman dari API:', err);
