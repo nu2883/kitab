@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Kitab Al I'tiqod Imam Baihaqi</title>
+    <title>Kitab</title>
 
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -485,6 +485,27 @@
         .dark-mode .arab-word.has-meaning::after {
             color: var(--color-light-blue);
         }
+
+        /* Pastikan CSS ini ada dan cukup kontras */
+        .last-read-highlight {
+            /* Gunakan warna background yang sangat mencolok */
+            background-color: #ffdd00 !important;
+            /* Kuning terang */
+
+            /* Tambahkan transisi agar perubahan warna terlihat halus */
+            transition: background-color 0.5s ease-in-out;
+
+            /* Tambahkan sedikit efek untuk membuatnya lebih terlihat */
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        /* Jika Anda mendukung Dark Mode, tambahkan versi Dark Mode */
+        .dark .last-read-highlight {
+            background-color: #8b5cf6 !important;
+            /* Misalnya, ungu terang untuk Dark Mode */
+            color: #fff !important;
+        }
     </style>
 </head>
 
@@ -547,11 +568,18 @@
                     </div>
                 </div>
 
-                <button @click="toggleReading()"
-                    class="px-3 py-1 text-sm font-semibold rounded-lg bg-green-500 text-white dark:bg-green-600 dark:hover:bg-green-700 disabled:opacity-50 transition-colors duration-200">
-                    <span v-if="!isSpeaking">🔊 Baca</span>
-                    <span v-else>🔇 Berhenti</span>
-                </button>
+                <div class="flex items-center gap-2">
+
+                    <button v-if="hasLocalBookmark" @click="scrollToLastRead()"
+                        class="p-2 text-sm font-semibold rounded-lg bg-yellow-500 text-white dark:bg-yellow-600 dark:hover:bg-yellow-700 hover:bg-yellow-600 disabled:opacity-50 transition-colors duration-200">
+                        <span class="hidden sm:inline">Lanjut </span> 🚩
+                    </button>
+                    <button @click="toggleReading()"
+                        class="px-3 py-1 text-sm font-semibold rounded-lg bg-green-500 text-white dark:bg-green-600 dark:hover:bg-green-700 disabled:opacity-50 transition-colors duration-200">
+                        <span v-if="!isSpeaking">🔊 Baca</span>
+                        <span v-else>🔇 Berhenti</span>
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -568,6 +596,10 @@
                     Simpan
                 </button>
 
+                <button @click="setLastReadBookmark(activeBubble.item)"
+                    class="px-4 py-2 text-sm font-semibold text-white bg-yellow-500 rounded-lg shadow-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-opacity-50 transition-colors duration-200">
+                    🚩 Tandai
+                </button>
                 <button @click="toggleReading()"
                     class="px-4 py-2 text-sm font-semibold text-white bg-green-500 rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50 transition-colors duration-200">
                     <span v-if="!isSpeaking">🔊 Baca</span>
@@ -689,24 +721,24 @@
 
         <div class="book">
             <div class="book-header flex justify-between items-center px-4 py-2 border-b dark:border-gray-700">
+
                 <div class="text-lg font-semibold dark:text-white">
-                    Kitab Al I'tiqod Imam Baihaqi
+                    Kitab
                 </div>
-                
-                <div>
-                    <button 
-                        @click="copyArabicText"
-                        :disabled="dataAwal.length === 0"
-                        class="px-3 py-1 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white 
-                            disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-200 shadow"
-                        title="Salin semua teks Arab di halaman ini"
-                    >
+
+                <div class="flex items-center gap-3">
+
+
+
+                    <button @click="copyArabicText" :disabled="dataAwal.length === 0" class="px-3 py-1 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white 
+                       disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-200 shadow"
+                        title="Salin semua teks Arab di halaman ini">
                         <span class="mr-1">📋</span> Salin Teks Arab
                     </button>
                 </div>
             </div>
 
-<div v-if="loading" class="p-6 text-center text-sm text-gray-600">Memproses… tunggu sebentar</div>
+            <div v-if="loading" class="p-6 text-center text-sm text-gray-600">Memproses… tunggu sebentar</div>
 
             <div v-else>
                 <template>
@@ -727,46 +759,26 @@
                 <div v-if="dataAwal.length" class="page-paragraph" :style="{ fontSize: fontSizeArabic + 'px' }"
                     aria-live="polite">
 
-<template v-for="(item, idx) in dataAwal">
-    <span :key="String(idx)" :data-key="String(idx)" class="arab-word rtl-text" :class="{
-        'is-reading': isSpeaking && activeWordIndex === String(idx), 
-        'has-meaning': showMeaning && item.arti,
-        
-        // 🎯 PERBAIKAN UTAMA: Tambahkan kelas saat kata ini diklik
-        'bg-yellow-200 dark:bg-yellow-900/50': activeBubble && clickedWordIndex === String(idx),
-
-        // Tambahkan kelas hover agar sesuai
-        'hover:bg-yellow-100 dark:hover:bg-yellow-900/30': true 
-    }" :data-meaning="(showMeaning && item.arti) ? item.arti : ''"
-        @click.stop="handleWordClick(item, item.arab, String(idx), $event)" tabindex="0"
-        role="button" :aria-label="`Kata Arab ${item.arab}`">
-        {{ showArabic ? item.arab : item.noHarokat }}
-    </span>
-
-    <span style="display:inline-block; width:0.4rem;"></span>
-</template>
-
-                </div>
-
-                            <div class="book-header flex justify-between items-center px-4 py-2 border-b dark:border-gray-700">
-                <div class="text-lg font-semibold dark:text-white">
+                    <template v-for="(item, idx) in dataAwal">
+                        <span :key="String(idx)" :data-key="String(idx)" :id="`word-${item.no}`"
+                            class="arab-word rtl-text" :class="{
+                    'is-reading': isSpeaking && activeWordIndex === String(idx), 
+                    'has-meaning': showMeaning && item.arti,
                     
-                </div>
-                
-                <div>
-                    <button 
-                        @click="copyArabicText"
-                        :disabled="dataAwal.length === 0"
-                        class="px-3 py-1 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white 
-                            disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-200 shadow"
-                        title="Salin semua teks Arab di halaman ini"
-                    >
-                        <span class="mr-1">📋</span> Salin Teks Arab
-                    </button>
-                </div>
-            </div>
+                    'bg-yellow-200 dark:bg-yellow-900/50': activeBubble && clickedWordIndex === String(idx),
+                    'hover:bg-yellow-100 dark:hover:bg-yellow-900/30': true 
+                }" :data-meaning="(showMeaning && item.arti) ? item.arti : ''"
+                            @click.stop="handleWordClick(item, item.arab, String(idx), $event)" tabindex="0"
+                            role="button" :aria-label="`Kata Arab ${item.arab}`">
+                            {{ showArabic ? item.arab : item.noHarokat }}
+                        </span>
 
-                <div class="mt-4 w-full flex justify-between">
+                        <span style="display:inline-block; width:0.4rem;"></span>
+                    </template>
+
+                </div>
+
+                <div class="mt-4 w-full flex justify-between px-4">
                     <button @click="prevPage" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600">←
                         Prev Halaman</button>
                     <button @click="nextPage"
@@ -791,61 +803,62 @@
     <script>
         new Vue({
             el: '#app',
-  data() {
-    return {
-        // --- Konfigurasi Dasar & API ---
-        GAS_BASE: 'https://script.google.com/macros/s/AKfycby025S9w4zqYOhMzReoyu2EOauP-7uVJZCFbCiC_lrclg9WXNapzwxGwo7LLW7sV15G6A/exec',
-        noHalaman: null,
-        loading: false,
-        raw: null,
-        
-        // --- Preferensi Tampilan ---
-        theme: 'light',
-        darkMode: false,
-        fontSizeArabic: 26,
-        showArabic: true,
-        showMeaning: false,
+            data() {
+                return {
+                    hasLocalBookmark: false,
+                    // --- Konfigurasi Dasar & API ---
+                    GAS_BASE: 'https://script.google.com/macros/s/AKfycby025S9w4zqYOhMzReoyu2EOauP-7uVJZCFbCiC_lrclg9WXNapzwxGwo7LLW7sV15G6A/exec',
+                    noHalaman: null,
+                    loading: false,
+                    raw: null,
 
-        // --- Data Utama ---
-        dataAwal: [],
-        
-        // --- Kontrol Bubble & Kamus (Dictionary) ---
-        // 🎯 Perbaikan: Hapus duplikasi activeBubble (hanya simpan satu)
-        activeBubble: null,       // Data/ID dari bubble yang sedang terbuka
-        clickedWordIndex: null,   // Index kata yang sedang membuka bubble (untuk highlight)
-        isBubbleManuallyClosed: false,
-        showDictionary: false,
-        myDictionary: [],
-        dictionarySortDir: 'desc', // 'desc' = Terbaru di atas
-        
-        // --- Text-to-Speech (TTS) Control ---
-        ttsMode: 'arab-arti',
-        isSpeaking: false,
-        activeWordIndex: null,    // Index kata yang sedang dibaca (untuk highlight TTS)
-        spokenWords: [],
-        currentWordIndex: 0,      // Index array spokenWords yang sedang diproses
-        
-        // --- Notifikasi Toast ---
-        showToast: false,
-        toastMessage: '',
-        toastTimeout: null,       // Untuk menyimpan ID timer toast
-        
-        // --- Variabel Auto-Scroll Control ---
-        isUserScrolling: false, // Menjadi TRUE ketika pengguna menggulir secara manual
-        scrollTimeout: null,    // Timer untuk debounce (5 detik)
-    };
-},
+                    // --- Preferensi Tampilan ---
+                    theme: 'light',
+                    darkMode: false,
+                    fontSizeArabic: 26,
+                    showArabic: true,
+                    showMeaning: false,
+
+                    // --- Data Utama ---
+                    dataAwal: [],
+
+                    // --- Kontrol Bubble & Kamus (Dictionary) ---
+                    // 🎯 Perbaikan: Hapus duplikasi activeBubble (hanya simpan satu)
+                    activeBubble: null,       // Data/ID dari bubble yang sedang terbuka
+                    clickedWordIndex: null,   // Index kata yang sedang membuka bubble (untuk highlight)
+                    isBubbleManuallyClosed: false,
+                    showDictionary: false,
+                    myDictionary: [],
+                    dictionarySortDir: 'desc', // 'desc' = Terbaru di atas
+
+                    // --- Text-to-Speech (TTS) Control ---
+                    ttsMode: 'arab-arti',
+                    isSpeaking: false,
+                    activeWordIndex: null,    // Index kata yang sedang dibaca (untuk highlight TTS)
+                    spokenWords: [],
+                    currentWordIndex: 0,      // Index array spokenWords yang sedang diproses
+
+                    // --- Notifikasi Toast ---
+                    showToast: false,
+                    toastMessage: '',
+                    toastTimeout: null,       // Untuk menyimpan ID timer toast
+
+                    // --- Variabel Auto-Scroll Control ---
+                    isUserScrolling: false, // Menjadi TRUE ketika pengguna menggulir secara manual
+                    scrollTimeout: null,    // Timer untuk debounce (5 detik)
+                };
+            },
             computed: {
-                
-    
 
-    // 🎯 Properti Baru: Menggabungkan semua teks Arab
-    allArabicText() {
-        // Gabungkan semua properti 'arab' dari dataAwal, dipisahkan oleh spasi.
-        return this.dataAwal
-            .map(item => item.arab)
-            .join(' ');
-    },
+
+
+                // 🎯 Properti Baru: Menggabungkan semua teks Arab
+                allArabicText() {
+                    // Gabungkan semua properti 'arab' dari dataAwal, dipisahkan oleh spasi.
+                    return this.dataAwal
+                        .map(item => item.arab)
+                        .join(' ');
+                },
 
                 // 🎯 Properti Baru: Mengurutkan kamus
                 sortedDictionary() {
@@ -896,45 +909,101 @@
                 insertUrlBase() { return this.GAS_BASE + '?action=insert&table=request&data='; }
             },
             methods: {
-   async copyArabicText() {
-        if (this.allArabicText.length === 0) {
-            this.showSuccessToast('Tidak ada teks Arab untuk disalin di halaman ini.');
-            return;
-        }
-        
-        try {
-            // 1. Coba menggunakan Clipboard API modern
-            await navigator.clipboard.writeText(this.allArabicText);
-            
-            // 🎯 PANGGIL TOAST SETELAH SUKSES
-            this.showSuccessToast('Semua teks Arab halaman ini berhasil disalin! ✅'); 
-            
-        } catch (err) {
-            console.error('Gagal menyalin teks (Clipboard API): ', err);
-            
-            // 2. Fallback untuk browser lama
-            this.fallbackCopyTextToClipboard(this.allArabicText);
-            
-            // 🎯 PANGGIL TOAST UNTUK FALLBACK
-            this.showSuccessToast('Teks berhasil disalin (metode fallback). ✅');
-        }
-    },
-    
-    // Metode fallback jika Clipboard API tidak didukung
-    fallbackCopyTextToClipboard(text) {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";  // Hindari scroll
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-            document.execCommand('copy');
-        } catch (err) {
-            console.error('Gagal menyalin (fallback):', err);
-        }
-        document.body.removeChild(textArea);
-    },
+                checkBookmarkStatus() {
+                    // Set hasLocalBookmark menjadi true jika ada item di localStorage
+                    this.hasLocalBookmark = (localStorage.getItem('lastReadWordId') !== null);
+                },
+                /**
+     * Mengambil ID kata terakhir yang dibaca dari Local Storage 
+     * dan menggulir tampilan ke kata tersebut.
+     */
+                scrollToLastRead() {
+                    // Ambil ID unik yang disimpan oleh fungsi setLastReadBookmark()
+                    // Format ID yang diharapkan: "word-[nomor unik]"
+                    const lastReadId = localStorage.getItem('lastReadWordId');
+
+                    if (lastReadId) {
+                        // Cari elemen DOM
+                        const targetElement = document.getElementById(lastReadId);
+
+                        if (targetElement) {
+                            // Lakukan scroll dengan animasi halus
+                            targetElement.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center'    // Posisikan di tengah viewport
+                            });
+
+                            // Opsional: Berikan highlight visual pada kata tersebut
+                            this.highlightElementTemporarily(targetElement);
+
+                            console.log('Auto-scrolling ke:', lastReadId);
+                        } else {
+                            alert('Penanda bacaan tidak ditemukan di halaman ini. Mungkin berada di halaman lain.');
+                        }
+                    } else {
+                        alert('Belum ada penanda bacaan yang disimpan. Silakan tandai kata di pop-up terlebih dahulu.');
+                    }
+                },
+
+                // Fungsi pembantu highlight (jika diperlukan)
+                highlightElementTemporarily(element) {
+                    element.classList.add('last-read-highlight');
+                    setTimeout(() => {
+                        element.classList.remove('last-read-highlight');
+                    }, 3000);
+                },
+                setLastReadBookmark(item) {
+                    if (item && item.no !== undefined) {
+                        // Gunakan "word-[no]" sebagai ID unik yang disimpan
+                        const uniqueWordId = `word-${item.no}`;
+                        localStorage.setItem('lastReadWordId', uniqueWordId);
+                        // alert(`Kata "${item.arab}" ditandai! ID: ${uniqueWordId} ✅`);
+                        this.closeBubble();
+                        // ... panggil fungsi highlight jika ada
+                        this.checkBookmarkStatus();
+                    } else {
+                        alert('Gagal menandai. Nomor kata unik (no) tidak ditemukan.');
+                    }
+                },
+                async copyArabicText() {
+                    if (this.allArabicText.length === 0) {
+                        this.showSuccessToast('Tidak ada teks Arab untuk disalin di halaman ini.');
+                        return;
+                    }
+
+                    try {
+                        // 1. Coba menggunakan Clipboard API modern
+                        await navigator.clipboard.writeText(this.allArabicText);
+
+                        // 🎯 PANGGIL TOAST SETELAH SUKSES
+                        this.showSuccessToast('Semua teks Arab halaman ini berhasil disalin! ✅');
+
+                    } catch (err) {
+                        console.error('Gagal menyalin teks (Clipboard API): ', err);
+
+                        // 2. Fallback untuk browser lama
+                        this.fallbackCopyTextToClipboard(this.allArabicText);
+
+                        // 🎯 PANGGIL TOAST UNTUK FALLBACK
+                        this.showSuccessToast('Teks berhasil disalin (metode fallback). ✅');
+                    }
+                },
+
+                // Metode fallback jika Clipboard API tidak didukung
+                fallbackCopyTextToClipboard(text) {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed";  // Hindari scroll
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                    } catch (err) {
+                        console.error('Gagal menyalin (fallback):', err);
+                    }
+                    document.body.removeChild(textArea);
+                },
                 toggleDictionarySort() {
                     this.dictionarySortDir = this.dictionarySortDir === 'asc' ? 'desc' : 'asc';
                 },
@@ -1054,43 +1123,53 @@
                     }
                     if (!res.ok) throw new Error('Insert gagal HTTP ' + res.status);
                 },
+                clearOtherPageCache(currentKeyPrefix = 'kitab_data_') {
+                    // Hapus semua cache yang dimulai dengan 'kitab_data_' kecuali halaman saat ini
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key && key.startsWith(currentKeyPrefix)) {
+                            localStorage.removeItem(key);
+                            i--; // penting! karena length localStorage berubah setelah remove
+                        }
+                    }
+                },
 
                 // Memuat data halaman (Memprioritaskan Local Storage)
                 async loadPage() {
                     const storageKey = 'kitab_data_' + this.noHalaman;
                     const savedData = localStorage.getItem(storageKey);
-                    const targetPage = Number(this.noHalaman); // 🎯 Amankan noHalaman di awal
+                    const targetPage = Number(this.noHalaman);
+                    const bookmarkKey = 'lastReadWordId';
 
-                    // 1. Coba ambil dari Local Storage
+                    // 1. Coba ambil dari Local Storage (Bookmark AMAN di sini)
                     if (savedData) {
                         try {
                             this.dataAwal = JSON.parse(savedData);
                             this.loading = false;
-                            // 💡 Debug: Pastikan data yang dimuat dari LS sesuai dengan halaman yang diminta
+
                             if (this.dataAwal.length > 0 && Number(this.dataAwal[0].hal) === targetPage) {
-                                console.log(`Halaman ${targetPage} berhasil dimuat dari Local Storage.`);
+                                console.log(`Halaman ${targetPage} berhasil dimuat dari Local Storage. Bookmark dipertahankan.`);
+                                this.checkBookmarkStatus(); // Perbarui status tombol (bisa muncul/hilang)
                                 return; // Berhasil dimuat dari Local Storage
                             } else {
-                                // Data di LS mungkin dari halaman yang salah atau kosong, lanjutkan ke API
-                                console.warn(`Data di Local Storage tidak cocok untuk halaman ${targetPage}. Mencoba dari API.`);
+                                console.warn(`Data di Local Storage tidak cocok. Mencoba dari API.`);
                                 localStorage.removeItem(storageKey);
                             }
                         } catch (e) {
                             console.warn('Gagal mem-parsing data dari Local Storage. Mencoba dari API.', e);
-                            localStorage.removeItem(storageKey); // Hapus data rusak
+                            localStorage.removeItem(storageKey);
                         }
                     }
 
                     // 2. Ambil dari API jika Local Storage gagal/kosong
                     try {
-                        // 🚨 Pastikan this.readUrl dihitung dengan benar di computed properties
                         const res = await fetch(this.readUrl, { method: 'GET' });
                         const text = await res.text();
                         let data = null;
                         try { data = JSON.parse(text); } catch (e) { data = null; }
                         this.raw = data !== null ? data : text;
 
-                        // Logika Normalisasi Data
+                        // ... Logika Normalisasi dan Mapping Data (Menggunakan kode asli Anda) ...
                         let normalized = [];
                         if (data && typeof data === 'object') {
                             if (Array.isArray(data.data)) normalized = data.data;
@@ -1102,9 +1181,7 @@
                         } else if (Array.isArray(data)) normalized = data;
                         else normalized = [];
 
-                        // Mapping & Normalisasi properti
                         normalized = normalized.map(r => {
-                            // 🎯 Perkuat Parsing Halaman & Baris (Hapus spasi, konversi ke angka)
                             const cleanHal = String(r.hal ?? r.h ?? r.page ?? 0).trim();
                             const cleanRow = String(r.row ?? r.R ?? 0).trim();
 
@@ -1115,35 +1192,45 @@
                                 kedudukan: r.kedudukan ?? r.Kedudukan ?? r.ked ?? '',
                                 noHarokat: r.noHarokat ?? r.noH ?? '',
                                 latin: r.latin ?? r.lat ?? '',
-                                // 💡 Pastikan hal selalu berupa angka bersih
                                 hal: Number(cleanHal) || 0,
                                 row: Number(cleanRow) || 0
                             };
                         });
 
-                        // Urutkan berdasarkan nomor baris (row)
                         normalized.sort((a, b) => a.row - b.row);
 
-                        // 3. Filter data sesuai halaman yang diminta (Gunakan targetPage yang sudah terjamin)
+                        // 3. Filter data sesuai halaman yang diminta
                         this.dataAwal = normalized.filter(r => r.hal === targetPage);
 
-                        if (this.dataAwal.length === 0) {
-                            console.warn(`API mengembalikan data mentah, tetapi tidak ada entri untuk Halaman ${targetPage} setelah filter.`);
-                        } else {
+                        if (this.dataAwal.length > 0) {
                             console.log(`Halaman ${targetPage} berhasil dimuat dari API. Jumlah baris: ${this.dataAwal.length}`);
+
+                            // 🛑 HAPUS BOOKMARK (HANYA) DI SINI: Setelah berhasil load dari API
+                            if (localStorage.getItem(bookmarkKey)) {
+                                localStorage.removeItem(bookmarkKey);
+                                console.log(`✅ Bookmark lama dihapus karena memuat data baru dari API.`);
+                            }
+                        } else {
+                            console.warn(`API mengembalikan data mentah, tetapi tidak ada entri untuk Halaman ${targetPage} setelah filter.`);
                         }
 
-                        // 4. Simpan data baru ke Local Storage
+                        // 4. Bersihkan semua cache halaman lama sebelum menyimpan yang baru
+                        this.clearOtherPageCache();
+
+                        // Simpan data baru ke Local Storage
                         localStorage.setItem(storageKey, JSON.stringify(this.dataAwal));
 
                     } catch (err) {
                         console.error('Gagal memuat halaman dari API:', err);
                         this.dataAwal = [];
                     } finally {
-                        // Logika loading harus diatur oleh pemanggil (insertThenFetch atau mounted)
+                        // ...
                     }
+
+                    // PENTING: Perbarui status tombol setelah semua proses selesai
+                    this.checkBookmarkStatus();
                 },
-                // Metode untuk memasukkan dan mengambil data
+
                 async insertThenFetch() {
                     if (!this.noHalaman) return;
                     this.loading = true;
@@ -1217,44 +1304,44 @@
                 },
 
                 // Metode generik untuk memulai pembacaan
-startReading() {
-    this.stopReading();
-    
-    // Pastikan ada data untuk dibaca
-    if (this.dataAwal.length === 0) {
-        this.stopReading();
-        this.showSuccessToast('Tidak ada teks untuk dibaca pada halaman ini.');
-        return;
-    }
-    
-    this.isSpeaking = true;
-    this.isBubbleManuallyClosed = false;
+                startReading() {
+                    this.stopReading();
 
-    // Tentukan indeks awal pembacaan dari kata yang terakhir diklik
-    let startIndex = Number(this.clickedWordIndex) || 0; 
-    
-    // 1. Siapkan spokenWords dari dataAwal
-    this.spokenWords = this.dataAwal.map((item, i) => {
-        const partText = this.showArabic ? item.arab : item.noHarokat;
-        return {
-            originalIndex: String(i),
-            item: item,
-            part: partText,
-        };
-    });
+                    // Pastikan ada data untuk dibaca
+                    if (this.dataAwal.length === 0) {
+                        this.stopReading();
+                        this.showSuccessToast('Tidak ada teks untuk dibaca pada halaman ini.');
+                        return;
+                    }
 
-    // 2. Verifikasi startIndex
-    if (startIndex < 0 || startIndex >= this.spokenWords.length) {
-        startIndex = 0;
-    }
-    
-    // 3. Setel state dan mulai pembacaan
-    this.currentWordIndex = startIndex;
-    this.readNextWord();
-    
-    // ❌ HAPUS BARIS INI: Baris ini yang menutup bubble secara otomatis
-    // this.closeBubble(); 
-},
+                    this.isSpeaking = true;
+                    this.isBubbleManuallyClosed = false;
+
+                    // Tentukan indeks awal pembacaan dari kata yang terakhir diklik
+                    let startIndex = Number(this.clickedWordIndex) || 0;
+
+                    // 1. Siapkan spokenWords dari dataAwal
+                    this.spokenWords = this.dataAwal.map((item, i) => {
+                        const partText = this.showArabic ? item.arab : item.noHarokat;
+                        return {
+                            originalIndex: String(i),
+                            item: item,
+                            part: partText,
+                        };
+                    });
+
+                    // 2. Verifikasi startIndex
+                    if (startIndex < 0 || startIndex >= this.spokenWords.length) {
+                        startIndex = 0;
+                    }
+
+                    // 3. Setel state dan mulai pembacaan
+                    this.currentWordIndex = startIndex;
+                    this.readNextWord();
+
+                    // ❌ HAPUS BARIS INI: Baris ini yang menutup bubble secara otomatis
+                    // this.closeBubble(); 
+                },
                 // Logika utama pembacaan kata per kata
                 async readNextWord() {
                     // 1. Cek Kondisi Berhenti
@@ -1401,41 +1488,41 @@ startReading() {
                 // Logika UI Interaktif
                 // ==================================================
 
-// PERBAIKAN PADA METODE
-// ----------------------------------------------------------------------
+                // PERBAIKAN PADA METODE
+                // ----------------------------------------------------------------------
 
-// Metode untuk menangani klik pada kata
-handleWordClick(item, part, wordIndex, event) {
-    // 1. Logika Pembukaan Bubble
-    this.openBubble(item, part, event);
-    
-    // 🎯 PERBAIKAN 1: Gunakan variabel khusus untuk menyorot kata yang diklik
-    // dan pastikan activeBubble disetel true di openBubble.
-    this.clickedWordIndex = wordIndex; // Index tunggal (String)
-    
-    // 2. Logika Penghentian Pembacaan
-    if (this.isSpeaking) {
-        this.stopReading();
-    }
-    
-    // 🎯 PERBAIKAN 2 (Opsional): Reset activeWordIndex (jika digunakan untuk pembacaan)
-    this.activeWordIndex = null;
-},
+                // Metode untuk menangani klik pada kata
+                handleWordClick(item, part, wordIndex, event) {
+                    // 1. Logika Pembukaan Bubble
+                    this.openBubble(item, part, event);
 
-// Metode untuk menutup gelembung
-closeBubble() {
-    this.activeBubble = null;
-    
-    // 🎯 PERBAIKAN 3: Bersihkan indeks kata yang diklik saat bubble ditutup
-    this.clickedWordIndex = null; 
-    
-    // Jika Anda memiliki data detail di bubble, bersihkan juga:
-    // this.bubbleData = {}; 
+                    // 🎯 PERBAIKAN 1: Gunakan variabel khusus untuk menyorot kata yang diklik
+                    // dan pastikan activeBubble disetel true di openBubble.
+                    this.clickedWordIndex = wordIndex; // Index tunggal (String)
 
-    // Variabel ini mungkin tidak diperlukan jika Anda mengontrol penutupan menggunakan logika event listener
-    // Namun jika dipertahankan, nilai harus konsisten:
-    this.isBubbleManuallyClosed = true;
-},
+                    // 2. Logika Penghentian Pembacaan
+                    if (this.isSpeaking) {
+                        this.stopReading();
+                    }
+
+                    // 🎯 PERBAIKAN 2 (Opsional): Reset activeWordIndex (jika digunakan untuk pembacaan)
+                    this.activeWordIndex = null;
+                },
+
+                // Metode untuk menutup gelembung
+                closeBubble() {
+                    this.activeBubble = null;
+
+                    // 🎯 PERBAIKAN 3: Bersihkan indeks kata yang diklik saat bubble ditutup
+                    this.clickedWordIndex = null;
+
+                    // Jika Anda memiliki data detail di bubble, bersihkan juga:
+                    // this.bubbleData = {}; 
+
+                    // Variabel ini mungkin tidak diperlukan jika Anda mengontrol penutupan menggunakan logika event listener
+                    // Namun jika dipertahankan, nilai harus konsisten:
+                    this.isBubbleManuallyClosed = true;
+                },
 
                 // Metode untuk membuka gelembung
                 openBubble(item, part, event) {
@@ -1560,6 +1647,7 @@ closeBubble() {
 
                 // 🎯 PERBAIKAN KONSISTENSI: Panggil setupScrollListener yang telah didefinisikan di methods.
                 this.setupScrollListener();
+                this.checkBookmarkStatus();
             },
             // ---
             unmounted() {
